@@ -1,17 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-
-namespace NNHelper
+﻿namespace NNHelper
 {
-   public  class MainApp
+    public class MainApp
     {
+        private GameProcess gp;
 
         private Settings settings;
-        private GameProcess gp;
 
         public void Start()
         {
@@ -21,18 +14,14 @@ namespace NNHelper
             gp = GameProcess.Create(settings);
 
 
-            if (nNet == null) {
-                var ta = new TrainingApp(gp,nNet);
+            if (nNet == null)
+            {
+                var ta = new TrainingApp(gp, nNet);
                 ta.startTrainingMode();
             }
-            
+
             var ab = new Aimbot(settings, gp, nNet);
             ab.Start();
         }
-
-
-
-
-
     }
 }

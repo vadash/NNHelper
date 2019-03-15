@@ -1,26 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace NNHelper
 {
-   public class GameProcess
+    public class GameProcess
     {
-       public Settings s;
-
-        public string ProcessName { get { return s.Game; } }
+        public Settings s;
 
         private GameProcess(Settings settings)
         {
             s = settings;
-
         }
 
-        public static  GameProcess Create(Settings settings)
+        public string ProcessName => s.Game;
+
+        public static GameProcess Create(Settings settings)
         {
             var gp = new GameProcess(settings);
             var p = Process.GetProcessesByName(settings.Game).FirstOrDefault();
@@ -35,10 +31,10 @@ namespace NNHelper
                     Console.ReadLine();
                 }
             }
+
             return gp;
         }
 
-        
 
         public bool isRunning()
         {

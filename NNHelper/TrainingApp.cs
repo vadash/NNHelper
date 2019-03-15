@@ -1,41 +1,36 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace NNHelper
 {
     public class TrainingApp
     {
+        private static Random random = new Random();
+        private readonly GameProcess gp;
+        private readonly NeuralNet nn;
         private bool screenshotMode;
-        private GameProcess gp;
-        private NeuralNet nn;
-        Settings settings;
-        public System.Drawing.Rectangle trainBox;
-
-        static Random random = new Random();
-
-        public string[] TrainingNames { get; }
+        private readonly Settings settings;
+        public Rectangle trainBox;
 
         public TrainingApp(GameProcess gProcess, NeuralNet neuralNet)
         {
             gp = gProcess;
             nn = neuralNet;
             settings = gp.s;
-            trainBox = new System.Drawing.Rectangle(0, 0, settings.SizeX / 2, settings.SizeY / 2);
+            trainBox = new Rectangle(0, 0, settings.SizeX / 2, settings.SizeY / 2);
 
             trainBox.X = settings.SizeX / 2 - trainBox.Width / 2;
             trainBox.Y = settings.SizeY / 2 - trainBox.Height / 2;
             TrainingNames = File.ReadAllLines($"trainfiles/{settings.Game}.names");
         }
 
+        public string[] TrainingNames { get; }
+
         public void startTrainingMode()
         {
-            Console.Write("How many objects will the NN be analyzing and training on? Write each object's name via the separator ',' without spaces (EX: 1,2): ");
+            Console.Write(
+                "How many objects will the NN be analyzing and training on? Write each object's name via the separator ',' without spaces (EX: 1,2): ");
             nn.TrainingNames = Console.ReadLine().Split(',');
         }
 
@@ -83,8 +78,6 @@ namespace NNHelper
         //    }
 
 
-            
-
         //    if (User32.GetAsyncKeyState(settings.ScreenshotKey) == -32767)
         //    {
         //        float relative_center_x = (float)(trainBox.X + trainBox.Width / 2) / settings.SizeX;
@@ -93,7 +86,7 @@ namespace NNHelper
         //        float relative_height = (float)trainBox.Height / settings.SizeY;
         //        gp.saveCapture($"darknet/data/img/{settings.Game}{rand}.png");
         //        File.WriteAllText($"darknet/data/img/{settings.Game}{rand}.txt", string.Format("{0} {1} {2} {3} {4}", selectedObject, relative_center_x, relative_center_y, relative_width, relative_height).Replace(",", "."));
-                
+
         //        Console.Beep();
         //    }
 
@@ -103,7 +96,7 @@ namespace NNHelper
 
         //        bitmap.Save($"darknet/data/img/{settings.Game}{rand}.png", System.Drawing.Imaging.ImageFormat.Png);
         //        File.WriteAllText($"darknet/data/img/{settings.Game}{rand}.txt", "");
-                
+
         //        Console.Beep();
         //    }
 
@@ -154,7 +147,5 @@ namespace NNHelper
         //        Console.WriteLine("Okay! Training has finished. Let's check detection in the game!");
         //    }
         //}
-
-
     }
 }

@@ -1,34 +1,28 @@
 ﻿using GameOverlay.Drawing;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NNHelper
 {
     public class GraphicsEx : Graphics
     {
-        public static GameOverlay.Drawing.Color AreaColor { get; set; } = new GameOverlay.Drawing.Color(0, 255, 0, 10);
-        public static GameOverlay.Drawing.Color TextColor { get; set; } = new GameOverlay.Drawing.Color(120, 255, 255, 255);
-        public static GameOverlay.Drawing.Color BodyColor { get; set; } = new GameOverlay.Drawing.Color(0, 255, 0, 80);
-        public static GameOverlay.Drawing.Color HeadColor { get; set; } = new GameOverlay.Drawing.Color(255, 0, 0, 80);
+        public static readonly Point StartPoint = new Point(0, 0);
+        public SolidBrush acb;
+        public SolidBrush bcb;
+        public SolidBrush csb;
+        public SolidBrush csfmb;
+
+        private Font DefaultFont;
+        public SolidBrush hcb;
+        public SolidBrush tfb;
+        public static Color AreaColor { get; set; } = new Color(0, 255, 0, 10);
+        public static Color TextColor { get; set; } = new Color(120, 255, 255, 255);
+        public static Color BodyColor { get; set; } = new Color(0, 255, 0, 80);
+        public static Color HeadColor { get; set; } = new Color(255, 0, 0, 80);
 
         public static string DefaultFontstr { get; set; } = "Arial";
         public static int DefaultFontSize { get; set; } = 10;
 
-        public static readonly Point StartPoint = new Point(0, 0);
 
-        Font DefaultFont;
-        public SolidBrush acb;
-        public SolidBrush tfb;
-        public SolidBrush csb;
-        public SolidBrush csfmb;
-        public SolidBrush hcb;
-        public SolidBrush bcb;
-
-        
-        new public void  Setup()
+        public new void Setup()
         {
             base.Setup();
 
@@ -43,12 +37,9 @@ namespace NNHelper
 
         public void WriteText(string text, Font f = null)
         {
-
             f = f ?? DefaultFont;
             DrawText(DefaultFont, tfb, StartPoint, text);
-
         }
-
     }
 
     public static class ColorHelper
@@ -57,8 +48,5 @@ namespace NNHelper
         {
             return graphics.CreateSolidBrush(c);
         }
-
-
     }
-
 }

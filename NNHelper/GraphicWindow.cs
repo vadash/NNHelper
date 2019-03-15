@@ -1,18 +1,11 @@
-﻿using GameOverlay.Drawing;
-using GameOverlay.Windows;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using GameOverlay.Windows;
 
 namespace NNHelper
 {
     public class GraphicWindow
     {
-        public OverlayWindow window;
         public GraphicsEx graphics;
-
+        public OverlayWindow window;
 
 
         public GraphicWindow(int w, int h)
@@ -24,7 +17,7 @@ namespace NNHelper
             };
             window.CreateWindow();
 
-            graphics = new GraphicsEx()
+            graphics = new GraphicsEx
             {
                 MeasureFPS = true,
                 Height = window.Height,
@@ -37,6 +30,5 @@ namespace NNHelper
             };
             graphics.Setup();
         }
-
     }
 }
