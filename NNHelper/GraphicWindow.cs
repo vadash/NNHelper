@@ -22,7 +22,7 @@ namespace NNHelper
                 Height = window.Height,
                 PerPrimitiveAntiAliasing = true,
                 TextAntiAliasing = true,
-                UseMultiThreadedFactories = true,
+                UseMultiThreadedFactories = false,
                 VSync = true,
                 Width = window.Width,
                 WindowHandle = window.Handle

@@ -13,7 +13,7 @@ namespace NNHelper
 {
     public class NeuralNet
     {
-        public string[] TrainingNames;
+        public string[] trainingNames;
         private YoloWrapper yoloWrapper;
 
         private NeuralNet()
@@ -66,11 +66,11 @@ namespace NNHelper
 
         public static NeuralNet Create(string game)
         {
-            var nn = new NeuralNet {TrainingNames = null, yoloWrapper = GetYolo(game)};
+            var nn = new NeuralNet {trainingNames = null, yoloWrapper = GetYolo(game)};
             return nn.yoloWrapper == null ? null : nn;
         }
         
-        public IEnumerable<YoloItem> GetItems(Image img, double confidence = 0.4)
+        public IEnumerable<YoloItem> GetItems(Image img, double confidence = 0.2)
         {
             using (var ms = new MemoryStream())
             {
