@@ -20,8 +20,6 @@ namespace NNHelper
         {
         }
 
-        public bool TrainingMode { get; set; } = false;
-
         public static YoloWrapper GetYolo(string Game)
         {
             if (File.Exists($"trainfiles/{Game}.cfg") && File.Exists($"trainfiles/{Game}.weights") &&
@@ -70,7 +68,7 @@ namespace NNHelper
             return nn.yoloWrapper == null ? null : nn;
         }
         
-        public IEnumerable<YoloItem> GetItems(Image img, double confidence = 0.2)
+        public IEnumerable<YoloItem> GetItems(Image img, double confidence = 0.25)
         {
             using (var ms = new MemoryStream())
             {

@@ -11,7 +11,7 @@
             var nNet = NeuralNet.Create(settings.Game);
             gp = GameProcess.Create(settings);
             if (nNet == null) return;
-            var ab = new Aimbot(settings, gp, nNet);
+            var ab = new Aimbot(settings, nNet);
             ab.Start();
         }
     }

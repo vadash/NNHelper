@@ -30,12 +30,12 @@ namespace NNHelper
                 mainWnd.graphics.DrawRectangle(mainWnd.graphics.csb, 0, 0, s.SizeX, s.SizeY, 2);
 
             mainWnd.graphics.FillRectangle(firemode ? mainWnd.graphics.csfmb : mainWnd.graphics.csb,
-                GameOverlay.Drawing.Rectangle.Create(s.SizeX / 2, s.SizeY / 2, 4, 4));
+                Rectangle.Create(s.SizeX / 2, s.SizeY / 2, 4, 4));
 
             //draw main text
             if (s.DrawText)
                 mainWnd.graphics.WriteText(
-                    $"Object {selectedObject}; SmoothAim {Math.Round(settings.SmoothAim, 2)}; SimpleRCS {settings.SimpleRcs}");
+                    $"Object {selectedObject}; SmoothAim {Math.Round(settings.SmoothAim, 2)}; SimpleRCS {settings.SimpleRcs}; FPS {mainWnd.graphics.FPS}");
 
             foreach (var item in items) DrawItem(item);
 
@@ -44,13 +44,13 @@ namespace NNHelper
 
         private void DrawItem(YoloItem item)
         {
-            //var shooting = 0;
             var body = Rectangle.Create(
-                item.X + Convert.ToInt32(item.Width / 6f), 
-                item.Y + Convert.ToInt32(item.Height / 6f), 
+                item.X + Convert.ToInt32(item.Width / 6f),
+                item.Y + Convert.ToInt32(item.Height / 6f),
                 Convert.ToInt32(item.Width / 1.5f),
                 Convert.ToInt32(item.Height / 2f));
-            mainWnd.graphics.DrawRectangle(mainWnd.graphics.bcb, body, 3);
+            mainWnd.graphics.DrawRectangle(mainWnd.graphics.bcb, body, 2);
+
             //mainWnd.graphics.DrawRectangle(mainWnd.graphics.hcb, GameOverlay.Drawing.Rectangle.Create(item.X, item.Y, item.Width, item.Height), 2);
             //mainWnd.graphics.DrawCrosshair(mainWnd.graphics.bcb, body.Left + body.Width / 2,
             //body.Top + body.Height / 2 + Convert.ToInt32(1 * shooting), 2, 2, CrosshairStyle.Cross);

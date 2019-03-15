@@ -5,29 +5,31 @@ using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using Alturos.Yolo.Model;
-using SharpDX.Direct2D1;
 using Rectangle = GameOverlay.Drawing.Rectangle;
 // ReSharper disable PossibleMultipleEnumeration
+// ReSharper disable FunctionNeverReturns
 
 namespace NNHelper
 {
     public class Aimbot
     {
-        private static bool lastMDwnState;
-        private static bool Firemode;
-        private static long lastTick = DateTime.Now.Ticks;
+        private static bool _lastMDwnState;
+        private static bool _firemode;
+        private static long _lastTick = DateTime.Now.Ticks;
         private Point coordinates;
         private readonly DrawHelper dh;
-
-        private bool Enabled = true;
-        private GameProcess gp;
+        private bool enabled = true;
         private readonly NeuralNet nn;
         private readonly Settings s;
-        private int shooting;
+        private double shooting = 0;
 
-        public Aimbot(Settings settings, GameProcess gameProcess, NeuralNet neuralNet)
+        private readonly ExponentialMovingAverageIndicator lastX = new ExponentialMovingAverageIndicator(5);
+        private readonly ExponentialMovingAverageIndicator lastY = new ExponentialMovingAverageIndicator(5);
+        private readonly ExponentialMovingAverageIndicator lastHeight = new ExponentialMovingAverageIndicator(5);
+        private readonly ExponentialMovingAverageIndicator lastWidth = new ExponentialMovingAverageIndicator(5);
+
+        public Aimbot(Settings settings, NeuralNet neuralNet)
         {
-            gp = gameProcess;
             nn = neuralNet;
             s = settings;
             dh = new DrawHelper(settings);
@@ -36,23 +38,18 @@ namespace NNHelper
         public void Start()
         {
             Console.WriteLine("running Aimbot :)");
-            var gc = new gController(s);
+            var gc = new GController(s);
 
-            new Thread(() =>
-            {
-                Thread.CurrentThread.IsBackground = true;
-                while (true) ReadKeys();
-            }).Start();
+            new Thread(ThreadStart).Start();
 
             while (true)
-                if (Enabled)
+                if (enabled)
                 {
                     coordinates = Cursor.Position;
-                    var bitmap = gc.ScreenCapture(true, coordinates);
+                    var bitmap = gc.ScreenCapture();
                     var items = nn.GetItems(bitmap);
-                    var yoloItems = items as YoloItem[] ?? items.ToArray();
-                    RenderItems(yoloItems);
-                    dh.DrawPlaying(coordinates, "", s, yoloItems, Firemode);
+                    RenderItems(items);
+                    dh.DrawPlaying(coordinates, "", s, items, _firemode);
                 }
                 else
                 {
@@ -60,19 +57,26 @@ namespace NNHelper
                 }
         }
 
+        private void ThreadStart()
+        {
+            Thread.CurrentThread.IsBackground = true;
+            while (true) ReadKeys();
+        }
+
         public void RenderItems(IEnumerable<YoloItem> items)
         {
-            shooting = 0;
+            if (s.SimpleRcs)
+                if (User32.GetAsyncKeyState(Keys.LButton) == 0) shooting = 0;
+
             var isKeyDown = User32.GetAsyncKeyState(Keys.RButton) == -32767 ||
-                         User32.GetAsyncKeyState(Keys.LButton) == -32767 ||
-                         User32.GetAsyncKeyState(Keys.Alt) == -32767;
-            if (isKeyDown || DateTime.Now.Ticks > lastTick + 20000000)
+                            User32.GetAsyncKeyState(Keys.LButton) == -32767;
+            if (isKeyDown || DateTime.Now.Ticks > _lastTick + 20000000)
             {
-                Firemode = isKeyDown || lastMDwnState;
-                lastMDwnState = isKeyDown;
-                lastTick = DateTime.Now.Ticks;
+                _firemode = isKeyDown || _lastMDwnState;
+                _lastMDwnState = isKeyDown;
+                _lastTick = DateTime.Now.Ticks;
             }
-            if (items.Any() && Firemode) Shooting(ref items);
+            if (items.Any() && _firemode) Shooting(ref items);
         }
 
         private void Shooting(ref IEnumerable<YoloItem> items)
@@ -80,37 +84,62 @@ namespace NNHelper
             var nearestEnemy = items.OrderBy(e =>
                 DistanceBetweenCross(e.X + e.Width / 2f, e.Y + e.Height / 2f)).First();
 
+            // Smoothing variables
+            lastX.AddDataPoint(nearestEnemy.X);
+            lastY.AddDataPoint(nearestEnemy.Y);
+            lastHeight.AddDataPoint(nearestEnemy.Height);
+            lastWidth.AddDataPoint(nearestEnemy.Width);
+
+            var smoothAim = InterpolateSmoothCoeff(out var dist);
+
             var nearestEnemyBody = Rectangle.Create(
-                nearestEnemy.X + Convert.ToInt32(nearestEnemy.Width / 4f),
-                nearestEnemy.Y + Convert.ToInt32(nearestEnemy.Height / 4f),
-                Convert.ToInt32(nearestEnemy.Width / 2f),
-                Convert.ToInt32(nearestEnemy.Height / 2f));
+                (float)(lastX.Average + lastWidth.Average / 4f),
+                (float)(lastY.Average + lastHeight.Average / 4f),
+                (float)(lastWidth.Average / 2f),
+                (float)(lastHeight.Average / 2f));
 
             if ((s.SizeX / 2f < nearestEnemyBody.Left) 
                 | (s.SizeX / 2f > nearestEnemyBody.Right)
                 | (s.SizeY / 2f < nearestEnemyBody.Top)
                 | (s.SizeY / 2f > nearestEnemyBody.Bottom))
             {
-                double dx = nearestEnemyBody.Left - s.SizeX / 2f + nearestEnemyBody.Width;
-                if (Math.Abs(dx) <= 1f)
+                var dx = nearestEnemyBody.Left - s.SizeX / 2f + nearestEnemyBody.Width / 2f;
+                if (Math.Abs(dx) <= 2f)
                 {
                     dx = 0;
                 }
-                double dy = nearestEnemyBody.Top - s.SizeY / 2f + nearestEnemyBody.Height;
-                if (Math.Abs(dy) <= 1f)
+                var dy = nearestEnemyBody.Top - s.SizeY / 2f + nearestEnemyBody.Height / 2f + shooting;
+                if (Math.Abs(dy) <= 2f)
                 {
                     dy = 0;
                 }
 
-                VirtualMouse.Move(Convert.ToInt32(dx * s.SmoothAim), Convert.ToInt32(dy * s.SmoothAim));
+                if (Math.Abs(dx) > 2f && Math.Abs(dy) > 2f)
+                {
+                    VirtualMouse.Move(Convert.ToInt32(dx * smoothAim), Convert.ToInt32(dy * smoothAim));
+                }
+                if (s.SimpleRcs) shooting += 2;
             }
+            else
+            {
+                if (s.SimpleRcs) shooting = 0;
+            }
+        }
+
+        private double InterpolateSmoothCoeff(out float dist)
+        {
+            dist = DistanceBetweenCross(lastX.Average + lastWidth.Average / 2f, lastY.Average + lastHeight.Average / 2f);
+            var tmp = -0.0000109091 * dist * dist + 0.00414545 * dist + 0.105455;
+            if (tmp < 0.1) tmp = 0.1;
+            if (tmp > 0.5) tmp = 0.5;
+            return tmp;
         }
 
         private void ReadKeys()
         {
             if (User32.GetAsyncKeyState(Keys.F7) == -32767)
             {
-                Enabled = !Enabled;
+                enabled = !enabled;
                 Console.Beep();
             }
 
@@ -124,12 +153,12 @@ namespace NNHelper
 
         }
 
-        public float DistanceBetweenCross(float x, float y)
+        public float DistanceBetweenCross(double x, double y)
         {
-            var yDist = y - (float)s.SizeY / 2;
-            var xDist = x - (float)s.SizeX / 2;
-            var hypotenuse = (float) Math.Sqrt(Math.Pow(yDist, 2) + Math.Pow(xDist, 2));
-            return hypotenuse;
+            var yDist = y - s.SizeY / 2f;
+            var xDist = x - s.SizeX / 2f;
+            var hypotenuse = Math.Sqrt(Math.Pow(yDist, 2) + Math.Pow(xDist, 2));
+            return (float)hypotenuse;
         }
     }
 }
