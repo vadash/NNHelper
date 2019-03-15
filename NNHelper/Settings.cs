@@ -15,21 +15,13 @@ namespace NNHelper
 
         [DataMember] public string Game { get; set; }
 
-        [DataMember] public bool SimpleRCS { get; set; }
+        [DataMember] public bool SimpleRcs { get; set; }
 
         [DataMember] public Keys ShootKey { get; set; }
-
-        [DataMember] public Keys TrainModeKey { get; set; }
-
-        [DataMember] public Keys ScreenshotKey { get; set; }
-
-        [DataMember] public Keys ScreenshotModeKey { get; set; }
 
         [DataMember] public float SmoothAim { get; set; }
 
         [DataMember] public bool Information { get; set; }
-
-        [DataMember] public bool Head { get; set; }
 
         [DataMember] public bool DrawAreaRectangle { get; set; }
 
@@ -39,34 +31,27 @@ namespace NNHelper
         public static Settings ReadSettings()
         {
             // Read settings
-            var Settings = new DataContractJsonSerializer(typeof(Settings[]));
-            Settings[] settings = null;
-            var auto_config = new Settings
+            var jsonSerializer = new DataContractJsonSerializer(typeof(Settings[]));
+            var autoConfig = new Settings
             {
-                SizeX = 320,
-                SizeY = 320,
-                Game = "game",
-                SimpleRCS = true,
-                ShootKey = Keys.MButton,
-                TrainModeKey = Keys.Insert,
-                ScreenshotKey = Keys.Home,
-                ScreenshotModeKey = Keys.NumPad9,
+                SizeX = 416,
+                SizeY = 416,
+                Game = "r5apex",
+                SimpleRcs = true,
+                ShootKey = Keys.Alt,
                 SmoothAim = 0.1f,
                 Information = true,
-                Head = false
             };
             using (var fs = new FileStream("config.json", FileMode.OpenOrCreate))
             {
                 if (fs.Length == 0)
                 {
-                    Settings.WriteObject(fs, new Settings[1] {auto_config});
+                    jsonSerializer.WriteObject(fs, new[] {autoConfig});
                     MessageBox.Show("Created auto-config, change whatever settings you want and restart.");
                     Process.GetCurrentProcess().Kill();
                     return null;
                 }
-
-                settings = (Settings[]) Settings.ReadObject(fs);
-
+                var settings = (Settings[]) jsonSerializer.ReadObject(fs);
                 return settings?[0];
             }
         }

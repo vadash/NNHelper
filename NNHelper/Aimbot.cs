@@ -35,7 +35,6 @@ namespace NNHelper
         {
             Console.WriteLine("running Aimbot :)");
             var gc = new gController(s);
-            var Running = true;
 
             new Thread(() =>
             {
@@ -43,15 +42,15 @@ namespace NNHelper
                 while (true) ReadKeys();
             }).Start();
 
-            while (Running)
+            while (true)
                 if (Enabled)
                 {
                     coordinates = Cursor.Position;
                     var bitmap = gc.ScreenCapture(true, coordinates);
-                    var items = nn.getItems(bitmap);
-                    RenderItems(items);
-
-                    dh.DrawPlaying(coordinates, "", s, items, Firemode);
+                    var items = nn.GetItems(bitmap);
+                    var yoloItems = items as YoloItem[] ?? items.ToArray();
+                    RenderItems(yoloItems);
+                    dh.DrawPlaying(coordinates, "", s, yoloItems, Firemode);
                 }
                 else
                 {
@@ -77,82 +76,40 @@ namespace NNHelper
 
         private void Shooting(ref IEnumerable<YoloItem> items)
         {
-            if (s.Head)
+            var nearestEnemy = items.OrderBy(x =>
+                DistanceBetweenCross(x.X + Convert.ToInt32(x.Width / 6) + x.Width / 1.5f / 2,
+                    x.Y + x.Height / 6 + x.Height / 3 / 2)).First();
+
+            var nearestEnemyBody = Rectangle.Create(nearestEnemy.X + Convert.ToInt32(nearestEnemy.Width / 6),
+                nearestEnemy.Y + nearestEnemy.Height / 6 + (float)2 * shooting,
+                Convert.ToInt32(nearestEnemy.Width / 1.5f), nearestEnemy.Height / 3 + (float)2 * shooting);
+            if (s.SmoothAim <= 0)
             {
-                var nearestEnemy = items.OrderBy(x =>
-                    DistanceBetweenCross(x.X + Convert.ToInt32(x.Width / 2.9) + x.Width / 3 / 2,
-                        x.Y + x.Height / 7 / 2)).FirstOrDefault();
+                VirtualMouse.Move(Convert.ToInt32(nearestEnemyBody.Left - s.SizeX / 2 + nearestEnemyBody.Width / 2),
+                    Convert.ToInt32(nearestEnemyBody.Top - s.SizeY / 2 + nearestEnemyBody.Height / 7 +
+                                    1 * shooting));
 
-                var nearestEnemyHead = Rectangle.Create(nearestEnemy.X + Convert.ToInt32(nearestEnemy.Width / 2.9),
-                    nearestEnemy.Y, Convert.ToInt32(nearestEnemy.Width / 3),
-                    nearestEnemy.Height / 7 + (float) 2 * shooting);
-
-                if (s.SmoothAim <= 0)
-                {
-                    VirtualMouse.Move(Convert.ToInt32(nearestEnemyHead.Left - s.SizeX / 2 + nearestEnemyHead.Width / 2),
-                        Convert.ToInt32(nearestEnemyHead.Top - s.SizeY / 2 + nearestEnemyHead.Height / 3 +
-                                        1 * shooting));
-
-                    //VirtualMouse.Move(Convert.ToInt32(((nearestEnemyHead.Left - s.SizeX / 2) + (nearestEnemyHead.Width / 2))),
-                    //    Convert.ToInt32((nearestEnemyHead.Top - s.SizeY / 2 + nearestEnemyHead.Height / 7 + 1 * shooting)));
-
-                    if (s.SimpleRCS) shooting += 2;
-                }
-                else //not smoothAim
-                {
-                    if ((s.SizeX / 2 < nearestEnemyHead.Left) | (s.SizeX / 2 > nearestEnemyHead.Right)
-                                                              | (s.SizeY / 2 < nearestEnemyHead.Top) |
-                                                              (s.SizeY / 2 > nearestEnemyHead.Bottom))
-                    {
-                        VirtualMouse.Move(
-                            Convert.ToInt32((nearestEnemyHead.Left - s.SizeX / 2 + nearestEnemyHead.Width / 2) *
-                                            s.SmoothAim),
-                            Convert.ToInt32((nearestEnemyHead.Top - s.SizeY / 2 + nearestEnemyHead.Height / 7 +
-                                             1 * shooting) * s.SmoothAim));
-                    }
-                    else
-                    {
-                        if (s.SimpleRCS) shooting += 2;
-                    }
-                }
+                if (s.SimpleRcs) shooting += 2;
             }
-            else // aim 2 body
+            else
             {
-                var nearestEnemy = items.OrderBy(x =>
-                    DistanceBetweenCross(x.X + Convert.ToInt32(x.Width / 6) + x.Width / 1.5f / 2,
-                        x.Y + x.Height / 6 + x.Height / 3 / 2)).First();
-
-                var nearestEnemyBody = Rectangle.Create(nearestEnemy.X + Convert.ToInt32(nearestEnemy.Width / 6),
-                    nearestEnemy.Y + nearestEnemy.Height / 6 + (float) 2 * shooting,
-                    Convert.ToInt32(nearestEnemy.Width / 1.5f), nearestEnemy.Height / 3 + (float) 2 * shooting);
-                if (s.SmoothAim <= 0)
+                if ((s.SizeX / 2 < nearestEnemyBody.Left) | (s.SizeX / 2 > nearestEnemyBody.Right)
+                                                          | (s.SizeY / 2 < nearestEnemyBody.Top) |
+                                                          (s.SizeY / 2 > nearestEnemyBody.Bottom))
                 {
-                    VirtualMouse.Move(Convert.ToInt32(nearestEnemyBody.Left - s.SizeX / 2 + nearestEnemyBody.Width / 2),
-                        Convert.ToInt32(nearestEnemyBody.Top - s.SizeY / 2 + nearestEnemyBody.Height / 7 +
-                                        1 * shooting));
-
-                    if (s.SimpleRCS) shooting += 2;
+                    VirtualMouse.Move(
+                        Convert.ToInt32((nearestEnemyBody.Left - s.SizeX / 2 + nearestEnemyBody.Width / 2) *
+                                        s.SmoothAim),
+                        Convert.ToInt32((nearestEnemyBody.Top - s.SizeY / 2 + nearestEnemyBody.Height / 7 +
+                                         1 * shooting) * s.SmoothAim));
                 }
                 else
                 {
-                    if ((s.SizeX / 2 < nearestEnemyBody.Left) | (s.SizeX / 2 > nearestEnemyBody.Right)
-                                                              | (s.SizeY / 2 < nearestEnemyBody.Top) |
-                                                              (s.SizeY / 2 > nearestEnemyBody.Bottom))
-                    {
-                        VirtualMouse.Move(
-                            Convert.ToInt32((nearestEnemyBody.Left - s.SizeX / 2 + nearestEnemyBody.Width / 2) *
-                                            s.SmoothAim),
-                            Convert.ToInt32((nearestEnemyBody.Top - s.SizeY / 2 + nearestEnemyBody.Height / 7 +
-                                             1 * shooting) * s.SmoothAim));
-                    }
-                    else
-                    {
-                        if (s.SimpleRCS) shooting += 2;
-                    }
+                    if (s.SimpleRcs) shooting += 2;
                 }
             }
 
-            if (s.SimpleRCS)
+            if (s.SimpleRcs)
                 VirtualMouse.Move(0, shooting);
         }
 
@@ -170,18 +127,8 @@ namespace NNHelper
             if (User32.GetAsyncKeyState(Keys.Down) == -32767)
                 s.SmoothAim = s.SmoothAim <= 0 ? s.SmoothAim : s.SmoothAim - 0.05f;
 
-            if (User32.GetAsyncKeyState(Keys.Delete) == -32767) s.Head = s.Head ? false : true;
+            if (User32.GetAsyncKeyState(Keys.Home) == -32767) s.SimpleRcs = s.SimpleRcs ? false : true;
 
-            if (User32.GetAsyncKeyState(Keys.Home) == -32767) s.SimpleRCS = s.SimpleRCS ? false : true;
-
-            //if (User32.GetAsyncKeyState(Keys.PageUp) == -32767)
-            //{
-            //    selectedObject = selectedObject + 1 == TrainingNames.Count() ? 0 : selectedObject + 1;
-            //}
-            //if (User32.GetAsyncKeyState(Keys.PageDown) == -32767)
-            //{
-            //    selectedObject = selectedObject == 0 ? TrainingNames.Count() - 1 : selectedObject - 1;
-            //}
         }
 
         public float DistanceBetweenCross(float X, float Y)

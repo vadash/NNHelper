@@ -36,7 +36,7 @@ namespace NNHelper
             //draw main text
             if (s.DrawText)
                 mainWnd.graphics.WriteText(
-                    $"Object {selectedObject}; SmoothAim {Math.Round(settings.SmoothAim, 2)}; Head {settings.Head}; SimpleRCS {settings.SimpleRCS}");
+                    $"Object {selectedObject}; SmoothAim {Math.Round(settings.SmoothAim, 2)}; SimpleRCS {settings.SimpleRcs}");
 
             foreach (var item in items) DrawItem(item);
 
@@ -46,32 +46,15 @@ namespace NNHelper
         private void DrawItem(YoloItem item)
         {
             var shooting = 0;
-
-            var head = GameOverlay.Drawing.Rectangle.Create(item.X + Convert.ToInt32(item.Width / 2.9), item.Y,
-                Convert.ToInt32(item.Width / 3), item.Height / 7);
             var body = GameOverlay.Drawing.Rectangle.Create(item.X + Convert.ToInt32(item.Width / 6),
                 item.Y + item.Height / 6, Convert.ToInt32(item.Width / 1.5f), item.Height / 3);
-
-
             mainWnd.graphics.DrawRectangle(mainWnd.graphics.hcb,
                 GameOverlay.Drawing.Rectangle.Create(item.X, item.Y, item.Width, item.Height), 2);
-
-            if (s.Head)
-            {
-                mainWnd.graphics.DrawRectangle(mainWnd.graphics.hcb, head, 2);
-                mainWnd.graphics.DrawCrosshair(mainWnd.graphics.hcb, head.Left + head.Width / 2,
-                    head.Top + head.Height / 2 + Convert.ToInt32(1 * shooting), 2, 2, CrosshairStyle.Cross);
-                mainWnd.graphics.DrawLine(mainWnd.graphics.hcb, s.SizeX / 2, s.SizeY / 2, head.Left + head.Width / 2,
-                    head.Top + head.Height / 2 + Convert.ToInt32(1 * shooting), 2);
-            }
-            else
-            {
-                mainWnd.graphics.DrawRectangle(mainWnd.graphics.bcb, body, 2);
-                mainWnd.graphics.DrawCrosshair(mainWnd.graphics.bcb, body.Left + body.Width / 2,
-                    body.Top + body.Height / 2 + Convert.ToInt32(1 * shooting), 2, 2, CrosshairStyle.Cross);
-                mainWnd.graphics.DrawLine(mainWnd.graphics.bcb, s.SizeX / 2, s.SizeY / 2, body.Left + body.Width / 2,
-                    body.Top + body.Height / 2 + Convert.ToInt32(1 * shooting), 2);
-            }
+            mainWnd.graphics.DrawRectangle(mainWnd.graphics.bcb, body, 2);
+            mainWnd.graphics.DrawCrosshair(mainWnd.graphics.bcb, body.Left + body.Width / 2,
+                body.Top + body.Height / 2 + Convert.ToInt32(1 * shooting), 2, 2, CrosshairStyle.Cross);
+            mainWnd.graphics.DrawLine(mainWnd.graphics.bcb, s.SizeX / 2, s.SizeY / 2, body.Left + body.Width / 2,
+                body.Top + body.Height / 2 + Convert.ToInt32(1 * shooting), 2);
         }
 
         public void DrawDisabled()

@@ -6,8 +6,7 @@ namespace NNHelper
     {
         public GraphicsEx graphics;
         public OverlayWindow window;
-
-
+        
         public GraphicWindow(int w, int h)
         {
             window = new OverlayWindow(0, 0, w, h)
@@ -23,7 +22,7 @@ namespace NNHelper
                 Height = window.Height,
                 PerPrimitiveAntiAliasing = true,
                 TextAntiAliasing = true,
-                UseMultiThreadedFactories = true, //testing this
+                UseMultiThreadedFactories = true,
                 VSync = true,
                 Width = window.Width,
                 WindowHandle = window.Handle
