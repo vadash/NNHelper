@@ -27,7 +27,7 @@ namespace NNHelper
 
         public static void MoveTo(int x, int y)
         {
-            mouse_event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE, x, y, 0, 0);
+            mouse_event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE | 0x4000, x, y, 0, 0);
         }
 
         public static void LeftClick()

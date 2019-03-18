@@ -40,8 +40,6 @@ namespace NNHelper
             Console.WriteLine("running Aimbot :)");
             var gc = new GController(s);
 
-            new Thread(ThreadStart).Start();
-
             while (true)
                 if (enabled)
                 {
@@ -57,11 +55,6 @@ namespace NNHelper
                 }
         }
 
-        private void ThreadStart()
-        {
-            Thread.CurrentThread.IsBackground = true;
-            while (true) ReadKeys();
-        }
 
         public void RenderItems(IEnumerable<YoloItem> items)
         {
@@ -116,7 +109,7 @@ namespace NNHelper
 
                 if (Math.Abs(dx) > 2f && Math.Abs(dy) > 2f)
                 {
-                    VirtualMouse.Move(Convert.ToInt32(dx * smoothAim), Convert.ToInt32(dy * smoothAim));
+                    VirtualMouse.MoveTo(Convert.ToInt32(dx * smoothAim), Convert.ToInt32(dy * smoothAim));
                 }
                 if (s.SimpleRcs) shooting += 2;
             }
@@ -137,19 +130,8 @@ namespace NNHelper
 
         private void ReadKeys()
         {
-            if (User32.GetAsyncKeyState(Keys.F7) == -32767)
-            {
-                enabled = !enabled;
-                Console.Beep();
-            }
 
-            if (User32.GetAsyncKeyState(Keys.Up) == -32767)
-                s.SmoothAim = s.SmoothAim >= 1 ? s.SmoothAim : s.SmoothAim + 0.05f;
 
-            if (User32.GetAsyncKeyState(Keys.Down) == -32767)
-                s.SmoothAim = s.SmoothAim <= 0 ? s.SmoothAim : s.SmoothAim - 0.05f;
-
-            if (User32.GetAsyncKeyState(Keys.Home) == -32767) s.SimpleRcs = !s.SimpleRcs;
 
         }
 
