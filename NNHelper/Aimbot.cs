@@ -23,11 +23,6 @@ namespace NNHelper
         private readonly Settings s;
         private double shooting = 0;
 
-        private readonly ExponentialMovingAverageIndicator lastX = new ExponentialMovingAverageIndicator(5);
-        private readonly ExponentialMovingAverageIndicator lastY = new ExponentialMovingAverageIndicator(5);
-        private readonly ExponentialMovingAverageIndicator lastHeight = new ExponentialMovingAverageIndicator(5);
-        private readonly ExponentialMovingAverageIndicator lastWidth = new ExponentialMovingAverageIndicator(5);
-
         public Aimbot(Settings settings, NeuralNet neuralNet)
         {
             nn = neuralNet;
@@ -74,65 +69,43 @@ namespace NNHelper
 
         private void Shooting(ref IEnumerable<YoloItem> items)
         {
+            s.SmoothAim = 0.5f;
+
             var nearestEnemy = items.OrderBy(e =>
                 DistanceBetweenCross(e.X + e.Width / 2f, e.Y + e.Height / 2f)).First();
 
-            // Smoothing variables
-            lastX.AddDataPoint(nearestEnemy.X);
-            lastY.AddDataPoint(nearestEnemy.Y);
-            lastHeight.AddDataPoint(nearestEnemy.Height);
-            lastWidth.AddDataPoint(nearestEnemy.Width);
-
-            var smoothAim = InterpolateSmoothCoeff(out var dist);
-
             var nearestEnemyBody = Rectangle.Create(
-                (float)(lastX.Average + lastWidth.Average / 4f),
-                (float)(lastY.Average + lastHeight.Average / 4f),
-                (float)(lastWidth.Average / 2f),
-                (float)(lastHeight.Average / 2f));
+                nearestEnemy.X + nearestEnemy.Width / 4f,
+                nearestEnemy.Y + nearestEnemy.Height / 4f,
+                nearestEnemy.Width / 2f,
+                nearestEnemy.Height / 2f);
 
-            if ((s.SizeX / 2f < nearestEnemyBody.Left) 
-                | (s.SizeX / 2f > nearestEnemyBody.Right)
-                | (s.SizeY / 2f < nearestEnemyBody.Top)
-                | (s.SizeY / 2f > nearestEnemyBody.Bottom))
+            var nearestEnemyHead = Rectangle.Create(
+                nearestEnemy.X + nearestEnemy.Width / 3f,
+                nearestEnemy.Y + nearestEnemy.Height / 12f,
+                nearestEnemy.Width / 3f,
+                nearestEnemy.Height / 3f);
+
+            var curDx = nearestEnemyHead.Left + nearestEnemyHead.Width / 2f - s.SizeX / 2f;
+            var curDy = nearestEnemyHead.Top + nearestEnemyHead.Height / 3f - s.SizeY / 2f;
+            if (Math.Abs(curDx) >= 2.1f)
             {
-                var dx = nearestEnemyBody.Left - s.SizeX / 2f + nearestEnemyBody.Width / 2f;
-                if (Math.Abs(dx) <= 2f)
-                {
-                    dx = 0;
-                }
-                var dy = nearestEnemyBody.Top - s.SizeY / 2f + nearestEnemyBody.Height / 2f + shooting;
-                if (Math.Abs(dy) <= 2f)
-                {
-                    dy = 0;
-                }
-
-                if (Math.Abs(dx) > 2f && Math.Abs(dy) > 2f)
-                {
-                    VirtualMouse.MoveTo(Convert.ToInt32(dx * smoothAim), Convert.ToInt32(dy * smoothAim));
-                }
-                if (s.SimpleRcs) shooting += 2;
+                // slowly move cursor to head if we targeting body but dont move 1px distance
+                if (s.SizeX / 2f > nearestEnemy.X + nearestEnemy.Width * 0.2f / 4f && s.SizeX / 2f < nearestEnemy.X + nearestEnemy.Width * 0.8f)
+                    curDx = Math.Sign(curDx) * Math.Min(Math.Abs(curDx), nearestEnemy.Height / 30f);
             }
             else
+                curDx = 0;
+            if (Math.Abs(curDy) >= 2.1f)
             {
-                if (s.SimpleRcs) shooting = 0;
+                if (s.SizeY / 2f > nearestEnemy.Y + nearestEnemy.Height / 12f && s.SizeY / 2f < nearestEnemy.Y + nearestEnemy.Height * 0.8f)
+                    curDy = Math.Sign(curDy) * Math.Min(Math.Abs(curDy), nearestEnemy.Width / 30f);
             }
-        }
-
-        private double InterpolateSmoothCoeff(out float dist)
-        {
-            dist = DistanceBetweenCross(lastX.Average + lastWidth.Average / 2f, lastY.Average + lastHeight.Average / 2f);
-            var tmp = -0.0000109091 * dist * dist + 0.00414545 * dist + 0.105455;
-            if (tmp < 0.1) tmp = 0.1;
-            if (tmp > 0.5) tmp = 0.5;
-            return tmp;
-        }
-
-        private void ReadKeys()
-        {
-
-
-
+            else
+                curDy = 0;
+            // do we really need to move ? double checking range +-160, +-160
+            if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
+                VirtualMouse.MoveTo(Convert.ToInt32(curDx * s.SmoothAim), Convert.ToInt32(curDy * s.SmoothAim));
         }
 
         public float DistanceBetweenCross(double x, double y)
