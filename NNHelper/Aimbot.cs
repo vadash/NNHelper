@@ -21,7 +21,6 @@ namespace NNHelper
         private bool enabled = true;
         private readonly NeuralNet nn;
         private readonly Settings s;
-        private double shooting = 0;
 
         public Aimbot(Settings settings, NeuralNet neuralNet)
         {
@@ -53,9 +52,6 @@ namespace NNHelper
 
         public void RenderItems(IEnumerable<YoloItem> items)
         {
-            if (s.SimpleRcs)
-                if (User32.GetAsyncKeyState(Keys.LButton) == 0) shooting = 0;
-
             var isKeyDown = User32.GetAsyncKeyState(Keys.RButton) == -32767 ||
                             User32.GetAsyncKeyState(Keys.LButton) == -32767;
             if (isKeyDown || DateTime.Now.Ticks > _lastTick + 20000000)
@@ -88,7 +84,7 @@ namespace NNHelper
 
             var curDx = nearestEnemyHead.Left + nearestEnemyHead.Width / 2f - s.SizeX / 2f;
             var curDy = nearestEnemyHead.Top + nearestEnemyHead.Height / 3f - s.SizeY / 2f;
-            if (Math.Abs(curDx) >= 2.1f)
+            if (Math.Abs(curDx) >= 1.1f)
             {
                 // slowly move cursor to head if we targeting body but dont move 1px distance
                 if (s.SizeX / 2f > nearestEnemy.X + nearestEnemy.Width * 0.2f / 4f && s.SizeX / 2f < nearestEnemy.X + nearestEnemy.Width * 0.8f)
@@ -96,7 +92,7 @@ namespace NNHelper
             }
             else
                 curDx = 0;
-            if (Math.Abs(curDy) >= 2.1f)
+            if (Math.Abs(curDy) >= 1.1f)
             {
                 if (s.SizeY / 2f > nearestEnemy.Y + nearestEnemy.Height / 12f && s.SizeY / 2f < nearestEnemy.Y + nearestEnemy.Height * 0.8f)
                     curDy = Math.Sign(curDy) * Math.Min(Math.Abs(curDy), nearestEnemy.Width / 30f);

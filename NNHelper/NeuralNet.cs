@@ -68,11 +68,11 @@ namespace NNHelper
             return nn.yoloWrapper == null ? null : nn;
         }
         
-        public IEnumerable<YoloItem> GetItems(Image img, double confidence = 0.25)
+        public IEnumerable<YoloItem> GetItems(Image img, double confidence = 0.4)
         {
             using (var ms = new MemoryStream())
             {
-                img.Save(ms, ImageFormat.Png);
+                img.Save(ms, ImageFormat.Bmp);
                 return yoloWrapper.Detect(ms.ToArray()).Where(x => x.Confidence > confidence);
             }
         }
