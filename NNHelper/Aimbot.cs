@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Threading;
@@ -32,11 +33,20 @@ namespace NNHelper
         public void Start()
         {
             Console.WriteLine("running Aimbot :)");
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
             var gc = new GController(s);
 
             while (true)
                 if (enabled)
                 {
+                    var sleep = 1000f / 60f - stopwatch.ElapsedMilliseconds;
+                    if (sleep > 0)
+                    {
+                        Thread.Sleep((int)sleep);
+                    }
+                    stopwatch.Restart();
+
                     coordinates = Cursor.Position;
                     var bitmap = gc.ScreenCapture();
                     var items = nn.GetItems(bitmap);
@@ -84,24 +94,14 @@ namespace NNHelper
 
             var curDx = nearestEnemyHead.Left + nearestEnemyHead.Width / 2f - s.SizeX / 2f;
             var curDy = nearestEnemyHead.Top + nearestEnemyHead.Height / 3f - s.SizeY / 2f;
-            if (Math.Abs(curDx) >= 1.1f)
-            {
-                // slowly move cursor to head if we targeting body but dont move 1px distance
-                if (s.SizeX / 2f > nearestEnemy.X + nearestEnemy.Width * 0.2f / 4f && s.SizeX / 2f < nearestEnemy.X + nearestEnemy.Width * 0.8f)
-                    curDx = Math.Sign(curDx) * Math.Min(Math.Abs(curDx), nearestEnemy.Height / 30f);
-            }
-            else
-                curDx = 0;
-            if (Math.Abs(curDy) >= 1.1f)
-            {
-                if (s.SizeY / 2f > nearestEnemy.Y + nearestEnemy.Height / 12f && s.SizeY / 2f < nearestEnemy.Y + nearestEnemy.Height * 0.8f)
-                    curDy = Math.Sign(curDy) * Math.Min(Math.Abs(curDy), nearestEnemy.Width / 30f);
-            }
-            else
-                curDy = 0;
+            // slowly move cursor to head if we targeting body but dont move 1px distance
+            if (s.SizeX / 2f > nearestEnemy.X + nearestEnemy.Width * 0.2f / 4f && s.SizeX / 2f < nearestEnemy.X + nearestEnemy.Width * 0.8f)
+                curDx = Math.Sign(curDx) * Math.Min(Math.Abs(curDx), nearestEnemy.Height / 30f);
+            if (s.SizeY / 2f > nearestEnemy.Y + nearestEnemy.Height / 12f && s.SizeY / 2f < nearestEnemy.Y + nearestEnemy.Height * 0.8f)
+                curDy = Math.Sign(curDy) * Math.Min(Math.Abs(curDy), nearestEnemy.Width / 30f);
             // do we really need to move ? double checking range +-160, +-160
             if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
-                VirtualMouse.MoveTo(Convert.ToInt32(curDx * s.SmoothAim), Convert.ToInt32(curDy * s.SmoothAim));
+            VirtualMouse.MoveTo((int)curDx, (int)curDy);
         }
 
         public float DistanceBetweenCross(double x, double y)
