@@ -99,9 +99,27 @@ namespace NNHelper
                 curDx = Math.Sign(curDx) * Math.Min(Math.Abs(curDx), nearestEnemy.Height / 30f);
             if (s.SizeY / 2f > nearestEnemy.Y + nearestEnemy.Height / 12f && s.SizeY / 2f < nearestEnemy.Y + nearestEnemy.Height * 0.8f)
                 curDy = Math.Sign(curDy) * Math.Min(Math.Abs(curDy), nearestEnemy.Width / 30f);
+            // calculate smooth
+            var squareDist = curDx * curDx + curDy * curDy;
+            if (squareDist <= 40 * 40)
+            {
+                s.SmoothAim = 1.0f;
+            }
+            else if (squareDist <= 80 * 80)
+            {
+                s.SmoothAim = 0.5f;
+            }
+            else if (squareDist <= 160 * 160)
+            {
+                s.SmoothAim = 0.25f;
+            }
+            else
+            {
+                s.SmoothAim = 0.125f;
+            }
             // do we really need to move ? double checking range +-160, +-160
             if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
-            VirtualMouse.MoveTo((int)curDx, (int)curDy);
+            VirtualMouse.MoveTo((int)(curDx * s.SmoothAim), (int)(curDy * s.SmoothAim));
         }
 
         public float DistanceBetweenCross(double x, double y)
