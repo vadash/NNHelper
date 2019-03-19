@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Threading;
 using System.Windows.Forms;
 using Alturos.Yolo.Model;
 using Rectangle = GameOverlay.Drawing.Rectangle;
@@ -19,7 +18,7 @@ namespace NNHelper
         private static long _lastTick = DateTime.Now.Ticks;
         private Point coordinates;
         private readonly DrawHelper dh;
-        private bool enabled = true;
+        private bool aimEnabled = true;
         private readonly NeuralNet nn;
         private readonly Settings s;
 
@@ -32,34 +31,44 @@ namespace NNHelper
 
         public void Start()
         {
-            Console.WriteLine("running Aimbot :)");
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
+            Console.WriteLine("PepeHands please work");
+            var mainCycleWatch = new Stopwatch();
+            mainCycleWatch.Start();
+            var lastSeenEnemyWatch = new Stopwatch();
+            lastSeenEnemyWatch.Start();
             var gc = new GController(s);
+            IEnumerable<YoloItem> items = null;
 
             while (true)
-                if (enabled)
+                if (aimEnabled)
                 {
-                    var sleep = 1000f / 60f - stopwatch.ElapsedMilliseconds;
+                    coordinates = Cursor.Position;
+                    var sleep = Convert.ToInt32(1000f / 60f - mainCycleWatch.ElapsedMilliseconds);
                     if (sleep > 0)
                     {
-                        Thread.Sleep((int)sleep);
+                        if (lastSeenEnemyWatch.ElapsedMilliseconds < 3000)
+                        {
+                            if (items == null || !items.Any()) continue;
+                            RenderItems(items);
+                        }
+                        else
+                            dh.DrawDisabled();
+                        dh.DrawPlaying(coordinates, "", s, items, _firemode);
                     }
-                    stopwatch.Restart();
-
-                    coordinates = Cursor.Position;
-                    var bitmap = gc.ScreenCapture();
-                    var items = nn.GetItems(bitmap);
-                    RenderItems(items);
-                    dh.DrawPlaying(coordinates, "", s, items, _firemode);
+                    else
+                    {
+                        mainCycleWatch.Restart();
+                        var bitmap = gc.ScreenCapture();
+                        items = nn.GetItems(bitmap);
+                        if (items.Any()) lastSeenEnemyWatch.Restart();
+                    }
                 }
                 else
                 {
                     dh.DrawDisabled();
                 }
         }
-
-
+        
         public void RenderItems(IEnumerable<YoloItem> items)
         {
             var isKeyDown = User32.GetAsyncKeyState(Keys.RButton) == -32767 ||
