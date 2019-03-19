@@ -75,8 +75,6 @@ namespace NNHelper
 
         private void Shooting(ref IEnumerable<YoloItem> items)
         {
-            s.SmoothAim = 0.5f;
-
             var nearestEnemy = items.OrderBy(e =>
                 DistanceBetweenCross(e.X + e.Width / 2f, e.Y + e.Height / 2f)).First();
 
@@ -99,27 +97,29 @@ namespace NNHelper
                 curDx = Math.Sign(curDx) * Math.Min(Math.Abs(curDx), nearestEnemy.Height / 30f);
             if (s.SizeY / 2f > nearestEnemy.Y + nearestEnemy.Height / 12f && s.SizeY / 2f < nearestEnemy.Y + nearestEnemy.Height * 0.8f)
                 curDy = Math.Sign(curDy) * Math.Min(Math.Abs(curDy), nearestEnemy.Width / 30f);
-            // calculate smooth
+            var smooth = CalculateSmooth(curDx, curDy);
+            MoveMouse(curDx, curDy, smooth);
+        }
+
+        private void MoveMouse(float curDx, float curDy, float smooth)
+        {
+            if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
+                VirtualMouse.MoveTo(Convert.ToInt32(curDx * smooth), Convert.ToInt32(curDy * smooth));
+        }
+
+        private static float CalculateSmooth(float curDx, float curDy)
+        {
+            float smooth;
             var squareDist = curDx * curDx + curDy * curDy;
             if (squareDist <= 40 * 40)
-            {
-                s.SmoothAim = 1.0f;
-            }
+                smooth = 1.0f;
             else if (squareDist <= 80 * 80)
-            {
-                s.SmoothAim = 0.5f;
-            }
+                smooth = 0.5f;
             else if (squareDist <= 160 * 160)
-            {
-                s.SmoothAim = 0.25f;
-            }
+                smooth = 0.25f;
             else
-            {
-                s.SmoothAim = 0.125f;
-            }
-            // do we really need to move ? double checking range +-160, +-160
-            if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
-            VirtualMouse.MoveTo((int)(curDx * s.SmoothAim), (int)(curDy * s.SmoothAim));
+                smooth = 0.125f;
+            return smooth;
         }
 
         public float DistanceBetweenCross(double x, double y)

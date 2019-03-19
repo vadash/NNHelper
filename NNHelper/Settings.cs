@@ -15,11 +15,7 @@ namespace NNHelper
 
         [DataMember] public string Game { get; set; }
 
-        [DataMember] public bool SimpleRcs { get; set; }
-
         [DataMember] public Keys ShootKey { get; set; }
-
-        [DataMember] public float SmoothAim { get; set; }
 
         [DataMember] public bool Information { get; set; }
 
@@ -37,9 +33,7 @@ namespace NNHelper
                 SizeX = 416,
                 SizeY = 416,
                 Game = "r5apex",
-                SimpleRcs = true,
                 ShootKey = Keys.Alt,
-                SmoothAim = 0.1f,
                 Information = true,
             };
             using (var fs = new FileStream("config.json", FileMode.OpenOrCreate))

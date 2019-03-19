@@ -35,7 +35,7 @@ namespace NNHelper
             //draw main text
             if (s.DrawText)
                 mainWnd.graphics.WriteText(
-                    $"Object {selectedObject}; SmoothAim {Math.Round(settings.SmoothAim, 2)}; SimpleRCS {settings.SimpleRcs}; FPS {mainWnd.graphics.FPS}");
+                    $"FPS {mainWnd.graphics.FPS}");
 
             foreach (var item in items) DrawItem(item);
 
