@@ -18,11 +18,11 @@ namespace NNHelper
         }
 
 
-        public void DrawPlaying(Point curMousPos, string selectedObject, Settings settings, IEnumerable<YoloItem> items,
+        public void DrawPlaying(Point curMousePos, string selectedObject, Settings settings, IEnumerable<YoloItem> items,
             bool firemode)
         {
-            mainWnd.window.X = curMousPos.X - s.SizeX / 2;
-            mainWnd.window.Y = curMousPos.Y - s.SizeY / 2;
+            mainWnd.window.X = curMousePos.X - s.SizeX / 2;
+            mainWnd.window.Y = curMousePos.Y - s.SizeY / 2;
             mainWnd.graphics.BeginScene();
             mainWnd.graphics.ClearScene();
 
