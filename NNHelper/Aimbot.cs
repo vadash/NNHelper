@@ -16,7 +16,8 @@ namespace NNHelper
         private static bool _lastMDwnState;
         private static bool _firemode;
         private static long _lastTick = DateTime.Now.Ticks;
-        private Point coordinates;
+        private Point cursorPosition;
+        private Point lastCursorPosition;
         private readonly DrawHelper dh;
         private bool aimEnabled = true;
         private readonly NeuralNet nn;
@@ -42,34 +43,51 @@ namespace NNHelper
             while (true)
                 if (aimEnabled)
                 {
-                    coordinates = Cursor.Position;
+                    cursorPosition = Cursor.Position;
                     var sleep = Convert.ToInt32(1000f / 60f - mainCycleWatch.ElapsedMilliseconds);
                     if (sleep > 0)
                     {
                         if (lastSeenEnemyWatch.ElapsedMilliseconds < 3000)
                         {
                             if (items == null || !items.Any()) continue;
-                            RenderItems(items);
+                            RecalculateItemsPosition(ref items);
                         }
                         else
                             dh.DrawDisabled();
-                        dh.DrawPlaying(coordinates, "", s, items, _firemode);
+                        dh.DrawPlaying(cursorPosition, "", s, items, _firemode);
                     }
                     else
                     {
                         mainCycleWatch.Restart();
                         var bitmap = gc.ScreenCapture();
                         items = nn.GetItems(bitmap);
-                        if (items.Any()) lastSeenEnemyWatch.Restart();
+                        ShootItems(items);
+                        if (items != null && items.Any()) lastSeenEnemyWatch.Restart();
                     }
+                    lastCursorPosition = cursorPosition;
                 }
                 else
                 {
                     dh.DrawDisabled();
                 }
         }
-        
-        public void RenderItems(IEnumerable<YoloItem> items)
+
+        private void RecalculateItemsPosition(ref IEnumerable<YoloItem> items)
+        {
+            var dx = cursorPosition.X - lastCursorPosition.X;
+            var dy = cursorPosition.Y - lastCursorPosition.Y;
+            if (!items.Any())
+                return;
+            if (dx == 0 && dy == 0)
+                return;
+            foreach (var item in items)
+            {
+                item.X -= dx;
+                item.Y -= dy;
+            }
+        }
+
+        public void ShootItems(IEnumerable<YoloItem> items)
         {
             var isKeyDown = User32.GetAsyncKeyState(Keys.RButton) == -32767 ||
                             User32.GetAsyncKeyState(Keys.LButton) == -32767;
@@ -86,33 +104,13 @@ namespace NNHelper
         {
             var nearestEnemy = items.OrderBy(e =>
                 DistanceBetweenCross(e.X + e.Width / 2f, e.Y + e.Height / 2f)).First();
-            var nearestEnemyHead = GetEnemyHead(nearestEnemy);
-            var nearestEnemyBody = GetEnemyBody(nearestEnemy);
+            var nearestEnemyHead = Util.GetEnemyHead(nearestEnemy);
+            var nearestEnemyBody = Util.GetEnemyBody(nearestEnemy);
             var (curDx, curDy) = DetermineMove(nearestEnemyHead);
             SlowlyMoveToHead(ref curDx, ref curDy, nearestEnemyBody);
             DontMoveInHead(nearestEnemyHead, ref curDx, ref curDy);
             var smooth = CalculateSmooth(curDx, curDy);
             MoveMouse(curDx, curDy, smooth);
-        }
-
-        private static Rectangle GetEnemyBody(YoloItem nearestEnemy)
-        {
-            var nearestEnemyBody = Rectangle.Create(
-                nearestEnemy.X + Convert.ToInt32(nearestEnemy.Width * (1f - GraphicsEx.BodyWidth) / 2f),
-                y: nearestEnemy.Y + Convert.ToInt32(nearestEnemy.Height * (1f - GraphicsEx.BodyHeight) / 2f),
-                Convert.ToInt32(GraphicsEx.BodyWidth * nearestEnemy.Width),
-                Convert.ToInt32(GraphicsEx.BodyHeight * nearestEnemy.Height));
-            return nearestEnemyBody;
-        }
-
-        private static Rectangle GetEnemyHead(YoloItem nearestEnemy)
-        {
-            var nearestEnemyHead = Rectangle.Create(
-                nearestEnemy.X + Convert.ToInt32(nearestEnemy.Width * (1f - GraphicsEx.HeadWidth) / 2f),
-                y: Convert.ToInt32(nearestEnemy.Y),
-                Convert.ToInt32(GraphicsEx.HeadWidth * nearestEnemy.Width),
-                Convert.ToInt32(GraphicsEx.HeadHeight * nearestEnemy.Height));
-            return nearestEnemyHead;
         }
 
         private void DontMoveInHead(Rectangle nearestEnemyHead, ref float curDx, ref float curDy)
@@ -124,9 +122,15 @@ namespace NNHelper
         private void SlowlyMoveToHead(ref float curDx, ref float curDy, Rectangle nearestEnemyBody)
         {
             if (nearestEnemyBody.Left <= s.SizeX / 2f && s.SizeX / 2f <= nearestEnemyBody.Right)
-                curDx = Math.Sign(curDx) * Math.Min(Math.Abs(curDx), nearestEnemyBody.Height / 30f);
+            {
+                var minWidth = Math.Min(1f, nearestEnemyBody.Width / 30f);
+                curDx = Math.Sign(curDx) * Math.Min(Math.Abs(curDx), minWidth);
+            }
             if (nearestEnemyBody.Top <= s.SizeY / 2f && s.SizeY / 2f <= nearestEnemyBody.Bottom)
-                curDy = Math.Sign(curDy) * Math.Min(Math.Abs(curDy), nearestEnemyBody.Width / 30f);
+            {
+                var minHeight = Math.Min(1f, nearestEnemyBody.Height / 30f);
+                curDy = Math.Sign(curDy) * Math.Min(Math.Abs(curDy), minHeight);
+            }
         }
 
         private (float curDx, float curDy) DetermineMove(Rectangle nearestEnemyHead)

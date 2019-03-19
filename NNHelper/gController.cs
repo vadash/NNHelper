@@ -7,8 +7,6 @@ namespace NNHelper
 {
     public class GController : IDisposable
     {
-        private ScreenStateLogger screenStateLogger = new ScreenStateLogger();
-
         private readonly IntPtr hBitmap;
         private readonly IntPtr hdcDest;
         private readonly IntPtr hdcSrc;

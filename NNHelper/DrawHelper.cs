@@ -38,29 +38,13 @@ namespace NNHelper
 
         private void DrawItem(YoloItem item)
         {
-            var head = Rectangle.Create(
-                item.X + Convert.ToInt32(item.Width * (1f - GraphicsEx.HeadWidth) / 2f), 
-                y: Convert.ToInt32(item.Y),
-                Convert.ToInt32(GraphicsEx.HeadWidth * item.Width),
-                Convert.ToInt32(GraphicsEx.HeadHeight * item.Height));
-
-            var body = Rectangle.Create(
-                item.X + Convert.ToInt32(item.Width * (1f - GraphicsEx.BodyWidth) / 2f),
-                y:item.Y + Convert.ToInt32(item.Height * (1f - GraphicsEx.BodyHeight) / 2f),
-                Convert.ToInt32(GraphicsEx.BodyWidth * item.Width),
-                Convert.ToInt32(GraphicsEx.BodyHeight * item.Height));
-
-            // aim line
-            mainWnd.graphics.DrawLine(mainWnd.graphics.blueBrush,
-                s.SizeX / 2f,
-                s.SizeY / 2f,
-                body.Left + body.Width / 2,
-                body.Top + body.Height / 2,
-                2);
-
-            // body + head
+            var head = Util.GetEnemyHead(item);
+            var body = Util.GetEnemyBody(item);
             mainWnd.graphics.DrawRectangle(mainWnd.graphics.redBrush, body, 2);
-            mainWnd.graphics.DrawRectangle(mainWnd.graphics.blueBrush, head, 2);
+            if (body.Width > 10 && body.Height > 20)
+            {
+                mainWnd.graphics.DrawRectangle(mainWnd.graphics.blueBrush, head, 2);
+            }
         }
 
         public void DrawDisabled()
