@@ -13,14 +13,18 @@ namespace NNHelper
         private Font defaultFont;
         public SolidBrush headBrush;
         public SolidBrush textBrush;
-        public static Color AreaColor { get; set; } = new Color(0, 255, 0, 10);
-        public static Color TextColor { get; set; } = new Color(120, 255, 255);
-        public static Color BodyColor { get; set; } = new Color(0, 255, 0, 80);
-        public static Color HeadColor { get; set; } = new Color(255, 0, 0, 80);
+        public static Color AreaColor { get; } = new Color(0, 255, 0, 10);
+        public static Color TextColor { get; } = new Color(120, 255, 255);
+        public static Color BodyColor { get; } = new Color(0, 255, 0, 80);
+        public static Color HeadColor { get; } = new Color(255, 0, 0, 80);
 
         public static string DefaultFontStr { get; set; } = "Arial";
         public static int DefaultFontSize { get; set; } = 14;
 
+        public static float HeadWidth { get; } = 0.37f;
+        public static float HeadHeight { get; } = 0.19f;
+        public static float BodyWidth { get; } = 0.67f;
+        public static float BodyHeight { get; } = 0.8f;
 
         public new void Setup()
         {

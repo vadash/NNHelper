@@ -77,23 +77,39 @@ namespace NNHelper
         {
             var nearestEnemy = items.OrderBy(e =>
                 DistanceBetweenCross(e.X + e.Width / 2f, e.Y + e.Height / 2f)).First();
-
-            var nearestEnemyBody = Rectangle.Create(
-                nearestEnemy.X + nearestEnemy.Width / 4f,
-                nearestEnemy.Y + nearestEnemy.Height / 4f,
-                nearestEnemy.Width / 2f,
-                nearestEnemy.Height / 2f);
-
-            var nearestEnemyHead = Rectangle.Create(
-                nearestEnemy.X + nearestEnemy.Width / 3f,
-                nearestEnemy.Y + nearestEnemy.Height / 12f,
-                nearestEnemy.Width / 3f,
-                nearestEnemy.Height / 3f);
-
+            var nearestEnemyHead = GetEnemyHead(nearestEnemy);
+            var nearestEnemyBody = GetEnemyBody(nearestEnemy);
             var (curDx, curDy) = DetermineMove(nearestEnemyHead);
             SlowlyMoveToHead(ref curDx, ref curDy, nearestEnemyBody);
+            DontMoveInHead(nearestEnemyHead, ref curDx, ref curDy);
             var smooth = CalculateSmooth(curDx, curDy);
             MoveMouse(curDx, curDy, smooth);
+        }
+
+        private static Rectangle GetEnemyBody(YoloItem nearestEnemy)
+        {
+            var nearestEnemyBody = Rectangle.Create(
+                nearestEnemy.X + Convert.ToInt32(nearestEnemy.Width * (1f - GraphicsEx.BodyWidth) / 2f),
+                y: nearestEnemy.Y + Convert.ToInt32(nearestEnemy.Height * (1f - GraphicsEx.BodyHeight) / 2f),
+                Convert.ToInt32(GraphicsEx.BodyWidth * nearestEnemy.Width),
+                Convert.ToInt32(GraphicsEx.BodyHeight * nearestEnemy.Height));
+            return nearestEnemyBody;
+        }
+
+        private static Rectangle GetEnemyHead(YoloItem nearestEnemy)
+        {
+            var nearestEnemyHead = Rectangle.Create(
+                nearestEnemy.X + Convert.ToInt32(nearestEnemy.Width * (1f - GraphicsEx.HeadWidth) / 2f),
+                y: Convert.ToInt32(nearestEnemy.Y),
+                Convert.ToInt32(GraphicsEx.HeadWidth * nearestEnemy.Width),
+                Convert.ToInt32(GraphicsEx.HeadHeight * nearestEnemy.Height));
+            return nearestEnemyHead;
+        }
+
+        private void DontMoveInHead(Rectangle nearestEnemyHead, ref float curDx, ref float curDy)
+        {
+            if (nearestEnemyHead.Left <= s.SizeX / 2f && s.SizeX / 2f <= nearestEnemyHead.Right) curDx = 0;
+            if (nearestEnemyHead.Top <= s.SizeY / 2f && s.SizeY / 2f <= nearestEnemyHead.Bottom) curDy = 0;
         }
 
         private void SlowlyMoveToHead(ref float curDx, ref float curDy, Rectangle nearestEnemyBody)
@@ -113,6 +129,8 @@ namespace NNHelper
 
         private void MoveMouse(float curDx, float curDy, float smooth)
         {
+            if (Math.Abs(curDx) < 1f && Math.Abs(curDy) < 1f)
+                return;
             if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
                 VirtualMouse.MoveTo(Convert.ToInt32(curDx * smooth), Convert.ToInt32(curDy * smooth));
         }

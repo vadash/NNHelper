@@ -25,7 +25,7 @@ namespace NNHelper
             mainWnd.graphics.BeginScene();
             mainWnd.graphics.ClearScene();
             // draw area
-            mainWnd.graphics.DrawRectangle(mainWnd.graphics.blueBrush, 0, 0, s.SizeX, s.SizeY, 2);
+            //mainWnd.graphics.DrawRectangle(mainWnd.graphics.blueBrush, 0, 0, s.SizeX, s.SizeY, 2);
             // draw crossfire
             mainWnd.graphics.FillRectangle(firemode ? mainWnd.graphics.redBrush : mainWnd.graphics.blueBrush,
                 Rectangle.Create(s.SizeX / 2 - 2, s.SizeY / 2 - 2, 4, 4));
@@ -38,10 +38,18 @@ namespace NNHelper
 
         private void DrawItem(YoloItem item)
         {
-            var head = Rectangle.Create(item.X + Convert.ToInt32(item.Width / 2.9), item.Y,
-                Convert.ToInt32(item.Width / 3), item.Height / 7);
-            var body = Rectangle.Create(item.X + Convert.ToInt32(item.Width / 6), item.Y + item.Height / 6,
-                Convert.ToInt32(item.Width / 1.5f), item.Height / 3);
+            var head = Rectangle.Create(
+                item.X + Convert.ToInt32(item.Width * (1f - GraphicsEx.HeadWidth) / 2f), 
+                y: Convert.ToInt32(item.Y),
+                Convert.ToInt32(GraphicsEx.HeadWidth * item.Width),
+                Convert.ToInt32(GraphicsEx.HeadHeight * item.Height));
+
+            var body = Rectangle.Create(
+                item.X + Convert.ToInt32(item.Width * (1f - GraphicsEx.BodyWidth) / 2f),
+                y:item.Y + Convert.ToInt32(item.Height * (1f - GraphicsEx.BodyHeight) / 2f),
+                Convert.ToInt32(GraphicsEx.BodyWidth * item.Width),
+                Convert.ToInt32(GraphicsEx.BodyHeight * item.Height));
+
             // aim line
             mainWnd.graphics.DrawLine(mainWnd.graphics.blueBrush,
                 s.SizeX / 2f,
@@ -49,6 +57,7 @@ namespace NNHelper
                 body.Left + body.Width / 2,
                 body.Top + body.Height / 2,
                 2);
+
             // body + head
             mainWnd.graphics.DrawRectangle(mainWnd.graphics.redBrush, body, 2);
             mainWnd.graphics.DrawRectangle(mainWnd.graphics.blueBrush, head, 2);
