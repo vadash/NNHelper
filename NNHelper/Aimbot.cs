@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Alturos.Yolo.Model;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
-using Alturos.Yolo.Model;
 using Rectangle = GameOverlay.Drawing.Rectangle;
 // ReSharper disable PossibleMultipleEnumeration
 // ReSharper disable FunctionNeverReturns
@@ -39,37 +39,34 @@ namespace NNHelper
             lastSeenEnemyWatch.Start();
             var gc = new GController(s);
             IEnumerable<YoloItem> items = null;
+            var ticksInFrame = (long)(Math.Pow(10, 7) / 59.0); // 10 MHZ for my PC, 59 fps
 
             while (true)
                 if (aimEnabled)
                 {
                     cursorPosition = Cursor.Position;
-                    var sleep = Convert.ToInt32(1000f / 60f - mainCycleWatch.ElapsedMilliseconds);
-                    if (sleep > 0)
-                    {
-                        if (lastSeenEnemyWatch.ElapsedMilliseconds < 3000)
+                    if (mainCycleWatch.ElapsedTicks < ticksInFrame) // no need to update enemy info, just recalculate box position
+                        if (lastSeenEnemyWatch.ElapsedMilliseconds < 2000)
                         {
                             if (items == null || !items.Any()) continue;
                             RecalculateItemsPosition(ref items);
                         }
                         else
                             dh.DrawDisabled();
-                        dh.DrawPlaying(cursorPosition, "", s, items, _firemode);
-                    }
-                    else
+                    else // update enemy info
                     {
                         mainCycleWatch.Restart();
                         var bitmap = gc.ScreenCapture();
                         items = nn.GetItems(bitmap);
                         ShootItems(items);
-                        if (items != null && items.Any()) lastSeenEnemyWatch.Restart();
+                        if (items == null || !items.Any()) continue;
+                        lastSeenEnemyWatch.Restart();
                     }
+                    dh.DrawPlaying(cursorPosition, "", s, items, _firemode);
                     lastCursorPosition = cursorPosition;
                 }
                 else
-                {
                     dh.DrawDisabled();
-                }
         }
 
         private void RecalculateItemsPosition(ref IEnumerable<YoloItem> items)
@@ -148,19 +145,23 @@ namespace NNHelper
                 VirtualMouse.MoveTo(Convert.ToInt32(curDx * smooth), Convert.ToInt32(curDy * smooth));
         }
 
+        /// <summary>
+        /// Approximates smoothing with next function
+        /// quadratic fit {40, 1}, {80, 0.75}, {160, 0.5}, {320, 0.3}
+        /// </summary>
+        /// <param name="curDx"></param>
+        /// <param name="curDy"></param>
+        /// <returns></returns>
         private static float CalculateSmooth(float curDx, float curDy)
         {
-            float smooth;
-            var squareDist = curDx * curDx + curDy * curDy;
-            if (squareDist <= 40 * 40)
-                smooth = 1.0f;
-            else if (squareDist <= 80 * 80)
-                smooth = 0.5f;
-            else if (squareDist <= 160 * 160)
-                smooth = 0.25f;
-            else
-                smooth = 0.125f;
-            return smooth;
+            var dist2 = curDx * curDx + curDy * curDy;
+            var dist = Math.Sqrt(dist2);
+            if (dist < 40) dist2 = 40;
+            if (dist > 320) dist2 = 320;
+            var smooth = 0.0000107527 * dist2 - 0.00629839 * dist + 1.21667;
+            if (smooth < 0.35) smooth = 0.35;
+            if (smooth > 1.0) smooth = 1.0;
+            return (float)smooth;
         }
 
         public float DistanceBetweenCross(double x, double y)
