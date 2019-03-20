@@ -43,6 +43,7 @@ namespace NNHelper
             IEnumerable<YoloItem> items = null;
             var ticksInFrame = (long)(Math.Pow(10, 7) / 59.0); // 10 MHZ for my PC, 59 fps
 
+            SynchronizeToGameFps(gc, true);
             while (true)
                 if (aimEnabled)
                 {
@@ -78,11 +79,15 @@ namespace NNHelper
                     dh.DrawDisabled();
         }
 
-        private static void SynchronizeToGameFps(GController gc)
+        private void SynchronizeToGameFps(GController gc, bool bForce = false)
         {
-            var bitmap = gc.ScreenCapture();
-            while (Util.Equals(bitmap, gc.ScreenCapture()))
+            if (bForce || syncFpsWatch.ElapsedMilliseconds >= 30000)
             {
+                var bitmap = gc.ScreenCapture();
+                while (Util.Equals(bitmap, gc.ScreenCapture()))
+                {
+                }
+                syncFpsWatch.Restart();
             }
         }
 
@@ -137,12 +142,12 @@ namespace NNHelper
         {
             if (nearestEnemyBody.Left <= s.SizeX / 2f && s.SizeX / 2f <= nearestEnemyBody.Right)
             {
-                var minWidth = Math.Min(1f, nearestEnemyBody.Width / 30f);
+                var minWidth = Math.Max(1f, nearestEnemyBody.Width / 10f);
                 curDx = Math.Sign(curDx) * Math.Min(Math.Abs(curDx), minWidth);
             }
             if (nearestEnemyBody.Top <= s.SizeY / 2f && s.SizeY / 2f <= nearestEnemyBody.Bottom)
             {
-                var minHeight = Math.Min(1f, nearestEnemyBody.Height / 30f);
+                var minHeight = Math.Max(1f, nearestEnemyBody.Height / 10f);
                 curDy = Math.Sign(curDy) * Math.Min(Math.Abs(curDy), minHeight);
             }
         }
@@ -150,13 +155,13 @@ namespace NNHelper
         private (float curDx, float curDy) DetermineMove(Rectangle nearestEnemyHead)
         {
             var curDx = nearestEnemyHead.Left + nearestEnemyHead.Width / 2f - s.SizeX / 2f;
-            var curDy = nearestEnemyHead.Top + nearestEnemyHead.Height / 3f - s.SizeY / 2f;
+            var curDy = nearestEnemyHead.Top + nearestEnemyHead.Height / 2f - s.SizeY / 2f;
             return (curDx, curDy);
         }
 
         private void MoveMouse(float curDx, float curDy, float smooth)
         {
-            if (Math.Abs(curDx) < 1f && Math.Abs(curDy) < 1f)
+            if (Math.Abs(curDx) < 0.5f && Math.Abs(curDy) < 0.5f)
                 return;
             if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
                 VirtualMouse.MoveTo(Convert.ToInt32(curDx * smooth), Convert.ToInt32(curDy * smooth));
