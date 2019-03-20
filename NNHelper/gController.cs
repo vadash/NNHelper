@@ -34,12 +34,11 @@ namespace NNHelper
             hOld = GDI32.SelectObject(hdcDest, hBitmap);
         }
         
-        public Image ScreenCapture()
+        public Bitmap ScreenCapture()
         {
             GDI32.BitBlt(hdcDest, 0, 0, width, height, hdcSrc, screen_width / 2 - width / 2,
                 screen_height / 2 - height / 2, GDI32.SRCCOPY);
-            Image img = Image.FromHbitmap(hBitmap);
-            return img;
+            return Image.FromHbitmap(hBitmap);
         }
 
         public void Dispose()

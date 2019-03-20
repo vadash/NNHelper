@@ -22,12 +22,14 @@ namespace NNHelper
         private bool aimEnabled = true;
         private readonly NeuralNet nn;
         private readonly Settings s;
+        private readonly Stopwatch syncFpsWatch = new Stopwatch();
 
         public Aimbot(Settings settings, NeuralNet neuralNet)
         {
             nn = neuralNet;
             s = settings;
             dh = new DrawHelper(settings);
+            syncFpsWatch.Start();
         }
 
         public void Start()
@@ -52,7 +54,14 @@ namespace NNHelper
                             RecalculateItemsPosition(ref items);
                         }
                         else
+                        {
+                            if (syncFpsWatch.ElapsedMilliseconds >= 30000)
+                            {
+                                SynchronizeToGameFps(gc);
+                                syncFpsWatch.Restart();
+                            }
                             dh.DrawDisabled();
+                        }
                     else // update enemy info
                     {
                         mainCycleWatch.Restart();
@@ -67,6 +76,14 @@ namespace NNHelper
                 }
                 else
                     dh.DrawDisabled();
+        }
+
+        private static void SynchronizeToGameFps(GController gc)
+        {
+            var bitmap = gc.ScreenCapture();
+            while (Util.Equals(bitmap, gc.ScreenCapture()))
+            {
+            }
         }
 
         private void RecalculateItemsPosition(ref IEnumerable<YoloItem> items)
@@ -156,8 +173,8 @@ namespace NNHelper
         {
             var dist2 = curDx * curDx + curDy * curDy;
             var dist = Math.Sqrt(dist2);
-            if (dist < 40) dist2 = 40;
-            if (dist > 320) dist2 = 320;
+            if (dist < 40) dist = 40;
+            if (dist > 320) dist = 320;
             var smooth = 0.0000107527 * dist2 - 0.00629839 * dist + 1.21667;
             if (smooth < 0.35) smooth = 0.35;
             if (smooth > 1.0) smooth = 1.0;

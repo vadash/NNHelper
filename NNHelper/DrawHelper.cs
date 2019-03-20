@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Alturos.Yolo.Model;
-using GameOverlay.Drawing;
 using Point = System.Drawing.Point;
+using Rectangle = GameOverlay.Drawing.Rectangle;
 
 namespace NNHelper
 {
