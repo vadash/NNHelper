@@ -40,7 +40,7 @@ namespace NNHelper
             var head = Util.GetEnemyHead(item);
             var body = Util.GetEnemyBody(item);
             mainWnd.graphics.DrawRectangle(mainWnd.graphics.redBrush, body, 2);
-            if (body.Width > 10 && body.Height > 20)
+            if (head.Width > 10 || head.Height > 20)
             {
                 mainWnd.graphics.DrawRectangle(mainWnd.graphics.blueBrush, head, 2);
             }

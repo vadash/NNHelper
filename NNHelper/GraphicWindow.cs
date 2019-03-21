@@ -18,12 +18,12 @@ namespace NNHelper
 
             graphics = new GraphicsEx
             {
-                MeasureFPS = true,
+                MeasureFPS = false,
                 Height = window.Height,
-                PerPrimitiveAntiAliasing = true,
-                TextAntiAliasing = true,
-                UseMultiThreadedFactories = true,
-                VSync = true,
+                PerPrimitiveAntiAliasing = false,
+                TextAntiAliasing = false,
+                UseMultiThreadedFactories = false,
+                VSync = false,
                 Width = window.Width,
                 WindowHandle = window.Handle
             };
