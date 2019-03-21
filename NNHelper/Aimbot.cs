@@ -18,10 +18,12 @@ namespace NNHelper
         private static bool _firemode;
         private static long _lastTick = DateTime.Now.Ticks;
         private Point cursorPosition;
+        private Point lastCursorPosition;
         private readonly DrawHelper dh;
         private bool aimEnabled = true;
         private readonly NeuralNet nn;
         private readonly Settings s;
+        private readonly Stopwatch mainCycleWatch = new Stopwatch();
         private readonly Stopwatch syncFpsWatch = new Stopwatch();
 
         public Aimbot(Settings settings, NeuralNet neuralNet)
@@ -29,6 +31,7 @@ namespace NNHelper
             nn = neuralNet;
             s = settings;
             dh = new DrawHelper(settings);
+            mainCycleWatch.Start();
             syncFpsWatch.Start();
         }
 
@@ -38,20 +41,50 @@ namespace NNHelper
             var lastSeenEnemyWatch = new Stopwatch();
             lastSeenEnemyWatch.Start();
             var gc = new GController(s);
+            IEnumerable<YoloItem> items = null;
+            var ticksInFrame = (long)(Math.Pow(10, 7) / 60f); // 10 MHZ for my PC, 59 fps
 
+            SynchronizeToGameFps(gc, true);
             while (true)
                 if (aimEnabled)
                 {
                     cursorPosition = Cursor.Position;
-                    var bitmap = gc.ScreenCapture();
-                    var items = nn.GetItems(bitmap);
-                    if (items == null || !items.Any()) continue;
-                    ShootItems(items);
-                    lastSeenEnemyWatch.Restart();
+                    if (mainCycleWatch.ElapsedTicks < ticksInFrame) // no need to update enemy info, just recalculate box position
+                        if (lastSeenEnemyWatch.ElapsedMilliseconds < 2000)
+                        {
+                            if (items == null || !items.Any()) continue;
+                        }
+                        else
+                        {
+                            SynchronizeToGameFps(gc);
+                            dh.DrawDisabled();
+                        }
+                    else // update enemy info
+                    {
+                        mainCycleWatch.Restart();
+                        var bitmap = gc.ScreenCapture();
+                        items = nn.GetItems(bitmap);
+                        ShootItems(items);
+                        if (items == null || !items.Any()) continue;
+                        lastSeenEnemyWatch.Restart();
+                    }
                     dh.DrawPlaying(cursorPosition, "", s, items, _firemode);
+                    lastCursorPosition = cursorPosition;
                 }
                 else
                     dh.DrawDisabled();
+        }
+
+        private void SynchronizeToGameFps(GController gc, bool bForce = false)
+        {
+            if (bForce || syncFpsWatch.ElapsedMilliseconds >= 30000)
+            {
+                var bitmap = gc.ScreenCapture();
+                while (Util.Equals(bitmap, gc.ScreenCapture()))
+                {
+                }
+                syncFpsWatch.Restart();
+            }
         }
 
         public void ShootItems(IEnumerable<YoloItem> items)
@@ -90,6 +123,13 @@ namespace NNHelper
             MoveMouse(curDx, curDy);
         }
 
+        private (float curDx, float curDy) CalculateMoveToHead(Rectangle nearestEnemyHead)
+        {
+            var curDx = nearestEnemyHead.Left + nearestEnemyHead.Width / 2f - s.SizeX / 2f;
+            var curDy = nearestEnemyHead.Top + nearestEnemyHead.Height - s.SizeY / 2f;
+            return (curDx, curDy);
+        }
+
         private (float curDx, float curDy) CalculateMoveToBody(Rectangle nearestEnemyBody)
         {
             var curDx = nearestEnemyBody.Left + nearestEnemyBody.Width / 2f - s.SizeX / 2f;
@@ -115,19 +155,15 @@ namespace NNHelper
             }
         }
 
-        private (float curDx, float curDy) CalculateMoveToHead(Rectangle nearestEnemyHead)
-        {
-            var curDx = nearestEnemyHead.Left + nearestEnemyHead.Width / 2f - s.SizeX / 2f;
-            var curDy = nearestEnemyHead.Top + nearestEnemyHead.Height - s.SizeY / 2f;
-            return (curDx, curDy);
-        }
-
         private void MoveMouse(float curDx, float curDy)
         {
             if (Math.Abs(curDx) < 0.5f && Math.Abs(curDy) < 0.5f)
                 return;
             if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
+            {
                 VirtualMouse.Move(Convert.ToInt32(curDx), Convert.ToInt32(curDy));
+                //Thread.Sleep(2000);
+            }
         }
 
         public float DistanceBetweenCross(double x, double y)
