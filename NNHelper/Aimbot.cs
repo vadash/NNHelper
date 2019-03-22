@@ -64,6 +64,7 @@ namespace NNHelper
                     {
                         syncFramesProcessed++;
                         var bitmap = gc.ScreenCapture();
+                        float curDx = 0, curDy = 0;
                         if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES) // do tracking
                         {
                             var item = nn.Track(bitmap);
@@ -72,11 +73,7 @@ namespace NNHelper
                                 trackSkippedFrames++;
                                 continue;
                             }
-                            var (curDx, curDy) = GetAimPoint(item);
-                            if (IsShooting())
-                            {
-                                MoveMouse(curDx, curDy);
-                            }
+                            (curDx, curDy) = GetAimPoint(item);
                         }
                         else // using regular search
                         {
@@ -84,11 +81,11 @@ namespace NNHelper
                             if (items == null || !items.Any()) continue;
                             trackEnabled = true;
                             trackSkippedFrames = 0;
-                            var (curDx, curDy) = GetAimPoint(items);
-                            if (IsShooting())
-                            {
-                                MoveMouse(curDx, curDy);
-                            }
+                            (curDx, curDy) = GetAimPoint(items);
+                        }
+                        if (IsShooting())
+                        {
+                            //MoveMouse(curDx, curDy);
                         }
                     }
                     else // no need to update enemy info
@@ -221,11 +218,9 @@ namespace NNHelper
             }
         }
 
-        private void MoveMouse(float curDx, float curDy)
+        private static void MoveMouse(int xDelta, int yDelta)
         {
-            if (Math.Abs(curDx) < 0.5f && Math.Abs(curDy) < 0.5f)
-                return;
-            VirtualMouse.Move(Convert.ToInt32(curDx), Convert.ToInt32(curDy));
+            VirtualMouse.Move(xDelta, yDelta);
         }
 
         public float DistanceBetweenCross(double x, double y)
