@@ -162,7 +162,6 @@ namespace NNHelper
             if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
             {
                 VirtualMouse.Move(Convert.ToInt32(curDx), Convert.ToInt32(curDy));
-                //Thread.Sleep(2000);
             }
         }
 
