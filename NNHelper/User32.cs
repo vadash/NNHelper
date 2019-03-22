@@ -24,6 +24,11 @@ namespace NNHelper
         [DllImport("User32.dll")]
         public static extern short GetAsyncKeyState(Keys vKey);
 
+        public static bool IsKeyPushedDown(Keys vKey)
+        {
+            return (GetAsyncKeyState(vKey) & 0x8000) != 0;
+        }
+
         [DllImport("User32.Dll")]
         public static extern long SetCursorPos(int x, int y);
 

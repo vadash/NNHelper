@@ -21,11 +21,6 @@ namespace NNHelper
         public static string DefaultFontStr { get; set; } = "Arial";
         public static int DefaultFontSize { get; set; } = 14;
 
-        public static float HeadWidth { get; } = 0.37f;
-        public static float HeadHeight { get; } = 0.19f;
-        public static float BodyWidth { get; } = 0.67f;
-        public static float BodyHeight { get; } = 0.8f;
-
         public new void Setup()
         {
             base.Setup();

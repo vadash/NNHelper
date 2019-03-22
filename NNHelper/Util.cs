@@ -14,20 +14,20 @@ namespace NNHelper
         public static Rectangle GetEnemyBody(YoloItem nearestEnemy)
         {
             var nearestEnemyBody = Rectangle.Create(
-                nearestEnemy.X + Convert.ToInt32(nearestEnemy.Width * (1f - GraphicsEx.BodyWidth) / 2f),
-                nearestEnemy.Y + Convert.ToInt32(nearestEnemy.Height * (1f - GraphicsEx.BodyHeight) / 2f),
-                Convert.ToInt32(GraphicsEx.BodyWidth * nearestEnemy.Width),
-                Convert.ToInt32(GraphicsEx.BodyHeight * nearestEnemy.Height));
+                nearestEnemy.X + Convert.ToInt32(nearestEnemy.Width * (1f - Settings.BodyWidth) / 2f),
+                nearestEnemy.Y + Convert.ToInt32(nearestEnemy.Height * (1f - Settings.BodyHeight) / 2f),
+                Convert.ToInt32(Settings.BodyWidth * nearestEnemy.Width),
+                Convert.ToInt32(Settings.BodyHeight * nearestEnemy.Height));
             return nearestEnemyBody;
         }
 
         public static Rectangle GetEnemyHead(YoloItem nearestEnemy)
         {
             var nearestEnemyHead = Rectangle.Create(
-                nearestEnemy.X + Convert.ToInt32(nearestEnemy.Width * (1f - GraphicsEx.HeadWidth) / 2f),
+                nearestEnemy.X + Convert.ToInt32(nearestEnemy.Width * (1f - Settings.HeadWidth) / 2f),
                 y: Convert.ToInt32(nearestEnemy.Y),
-                Convert.ToInt32(GraphicsEx.HeadWidth * nearestEnemy.Width),
-                Convert.ToInt32(GraphicsEx.HeadHeight * nearestEnemy.Height));
+                Convert.ToInt32(Settings.HeadWidth * nearestEnemy.Width),
+                Convert.ToInt32(Settings.HeadHeight * nearestEnemy.Height));
             return nearestEnemyHead;
         }
 

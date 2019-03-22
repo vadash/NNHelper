@@ -23,6 +23,12 @@ namespace NNHelper
 
         [DataMember] public bool DrawText { get; set; }
 
+        public static float HeadWidth { get; } = 0.37f;
+        public static float HeadHeight { get; } = 0.19f;
+        public static float BodyWidth { get; } = 0.67f;
+        public static float BodyHeight { get; } = 0.8f;
+        public static float MinHeadSize { get; } = 10f;
+
 
         public static Settings ReadSettings()
         {
@@ -30,8 +36,8 @@ namespace NNHelper
             var jsonSerializer = new DataContractJsonSerializer(typeof(Settings[]));
             var autoConfig = new Settings
             {
-                SizeX = 416,
-                SizeY = 416,
+                SizeX = 320,
+                SizeY = 320,
                 Game = "r5apex",
                 ShootKey = Keys.Alt,
                 Information = true,

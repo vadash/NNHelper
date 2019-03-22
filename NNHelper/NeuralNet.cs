@@ -15,6 +15,7 @@ namespace NNHelper
     {
         public string[] trainingNames;
         private YoloWrapper yoloWrapper;
+        private YoloTracking yoloTracking;
 
         private NeuralNet()
         {
@@ -64,16 +65,26 @@ namespace NNHelper
 
         public static NeuralNet Create(string game)
         {
-            var nn = new NeuralNet {trainingNames = null, yoloWrapper = GetYolo(game)};
+            var nn = new NeuralNet {trainingNames = null, yoloWrapper = GetYolo(game), yoloTracking = new YoloTracking(GetYolo(game), 160) };
+            nn.yoloTracking.SetTrackingObject(new Point(160, 160));
             return nn.yoloWrapper == null ? null : nn;
         }
         
-        public IEnumerable<YoloItem> GetItems(Image img, double confidence = 0.4)
+        public IEnumerable<YoloItem> GetItems(Image img, double confidence = 0.2)
         {
             using (var ms = new MemoryStream())
             {
                 img.Save(ms, ImageFormat.Bmp);
                 return yoloWrapper.Detect(ms.ToArray()).Where(x => x.Confidence > confidence);
+            }
+        }
+
+        public YoloTrackingItem Track(Image img)
+        {
+            using (var ms = new MemoryStream())
+            {
+                img.Save(ms, ImageFormat.Bmp);
+                return yoloTracking.Analyse(ms.ToArray());
             }
         }
     }
