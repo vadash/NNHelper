@@ -70,7 +70,7 @@ namespace NNHelper
             return nn.yoloWrapper == null ? null : nn;
         }
         
-        public IEnumerable<YoloItem> GetItems(Image img, double confidence = 0.2)
+        public IEnumerable<YoloItem> GetItems(Image img, double confidence = 0.3)
         {
             using (var ms = new MemoryStream())
             {

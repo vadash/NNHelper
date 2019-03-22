@@ -29,7 +29,7 @@ namespace NNHelper
         //tracking
         private bool trackEnabled;
         private int trackSkippedFrames;
-        private const int TRACK_MAX_SKIPPED_FRAMES = 3;
+        private const int TRACK_MAX_SKIPPED_FRAMES = 1;
 
         //debug
         private readonly Stopwatch debugPerformanceStopwatch = new Stopwatch();
@@ -41,8 +41,6 @@ namespace NNHelper
             nn = neuralNet;
             s = settings;
             dh = new DrawHelper(settings);
-            mainCycleWatch.Start();
-            syncFpsWatch.Start();
         }
 
         public void Start()
@@ -51,8 +49,14 @@ namespace NNHelper
             var gc = new GController(s);
             StartReadKeysThread();
             SynchronizeToGameFps(gc, true);
+            mainCycleWatch.Start();
+            syncFpsWatch.Start();
             while (true)
             {
+                if (mainCycleWatch.ElapsedMilliseconds > 10000)
+                {
+                    var a = (float)syncFpsWatch.ElapsedMilliseconds / syncFramesProcessed;
+                }
                 if (aimEnabled)
                 {
                     cursorPosition = Cursor.Position;
@@ -60,7 +64,7 @@ namespace NNHelper
                     {
                         syncFramesProcessed++;
                         var bitmap = gc.ScreenCapture();
-                        if (trackEnabled && trackSkippedFrames < TRACK_MAX_SKIPPED_FRAMES) // do tracking
+                        if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES) // do tracking
                         {
                             var item = nn.Track(bitmap);
                             if (item == null)
@@ -105,7 +109,7 @@ namespace NNHelper
         #region Next frame math
         private int TimeToNextFrame()
         {
-            return (int)Math.Ceiling(syncFramesProcessed * (1000f / 60f) - mainCycleWatch.ElapsedMilliseconds);
+            return (int)Math.Ceiling(syncFramesProcessed * (1000f / 60f) - syncFpsWatch.ElapsedMilliseconds);
         }
 
         private bool IsNewFrameReady()
@@ -138,7 +142,7 @@ namespace NNHelper
                     {
                         _lastTick = DateTime.Now.Ticks;
                     }
-                    Thread.Sleep(500);
+                    Thread.Sleep(250);
                 }
             }).Start();
         }
