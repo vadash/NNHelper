@@ -21,6 +21,7 @@ namespace NNHelper
         private readonly NeuralNet nn;
         private readonly Settings s;
         private readonly Stopwatch mainCycleWatch = new Stopwatch();
+        private readonly ChaoticSmoothManager chaoticSmoothManager = new ChaoticSmoothManager();
 
         // sync fps
         private readonly Stopwatch syncFpsWatch = new Stopwatch();
@@ -85,7 +86,11 @@ namespace NNHelper
                         }
                         if (IsShooting())
                         {
-                            //MoveMouse(curDx, curDy);
+                            chaoticSmoothManager.AddPoint(curDx, curDy);
+                            var chaosSmooth = chaoticSmoothManager.GetSmooth();
+                            var distanceSmooth = CalculateDistanceSmoothSimple(curDx, curDy);
+                            var (xDelta, yDelta) = ApplySmoothScale(curDx, curDy, Math.Min(chaosSmooth, distanceSmooth));
+                            MoveMouse(xDelta, yDelta);
                         }
                     }
                     else // no need to update enemy info
@@ -102,6 +107,26 @@ namespace NNHelper
                 }
             }
         }
+
+        private (int, int) ApplySmoothScale(float curDx, float curDy, float smooth)
+        {
+            if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
+                return (Convert.ToInt32(curDx * smooth), Convert.ToInt32(curDy * smooth));
+            return (0, 0);
+        }
+
+        private static float CalculateDistanceSmoothSimple(float curDx, float curDy)
+        {
+            var dist2 = curDx * curDx + curDy * curDy;
+            var dist = Math.Sqrt(dist2);
+            float smooth;
+            if (dist < 40) smooth = 1f;
+            else if (dist < 80) smooth = 0.5f;
+            else if (dist < 160) smooth = 0.4f;
+            else smooth = 0.3f;
+            return smooth;
+        }
+
 
         #region Next frame math
         private int TimeToNextFrame()

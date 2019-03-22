@@ -71,6 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Aimbot.cs" />
+    <Compile Include="ChaoticSmoothManager.cs" />
     <Compile Include="ExponentialMovingAverageIndicator.cs" />
     <Compile Include="gController.cs" />
     <Compile Include="GraphicsHelper.cs" />
