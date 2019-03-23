@@ -1,18 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Windows.Forms.VisualStyles;
 
 namespace NNHelper
 {
     public class ChaoticSmoothManager
     {
-        private const int TIME_TO_SMOOTH_MS = 125;
-        private const int HOW_MANY_MOVEMENTS = 4;
-        private const float MIN_SMOOTH_COEFF = 0.9f;
+        private const int TIME_TO_SMOOTH_MS = 500;
+        private const int TIME_TO_TRACK_MS = 1000;
         private const float TOLERANCE = 0.01f;
-        private readonly List<(float dx, float dy, float time)> lastMovementList = new List<(float, float, float)>();
+        private readonly List<(float dx, float dy, float validTill)> lastMovementList = new List<(float, float, float)>();
         private readonly Stopwatch mainTimer = new Stopwatch();
-        private readonly List<(long smoothTill, float smooth, float angle)> smoothList = new List<(long smoothTill, float smooth, float angle)>();
+        private readonly List<(long smoothTill, float smooth, float angle)> smoothList = new List<(long, float, float)>();
 
         public ChaoticSmoothManager()
         {
@@ -22,14 +22,14 @@ namespace NNHelper
         public void AddPoint(float dx, float dy)
         {
             if (Math.Abs(dx) < 1f + TOLERANCE && Math.Abs(dy) < 1f + TOLERANCE) return;
-            lastMovementList.Add((dx, dy, mainTimer.ElapsedMilliseconds));
+            lastMovementList.Add((dx, dy, mainTimer.ElapsedMilliseconds + TIME_TO_TRACK_MS));
             CleanOld();
             Update();
         }
 
         private void CleanOld()
         {
-            if (lastMovementList.Count > HOW_MANY_MOVEMENTS)
+            if (lastMovementList.Count > 0 && mainTimer.ElapsedMilliseconds > lastMovementList[0].validTill)
             {
                 lastMovementList.RemoveAt(0);
             }
@@ -42,17 +42,14 @@ namespace NNHelper
         private void Update()
         {
             var angle = CalculateAverageAngle();
-            var smooth = ApproximateChaosSmoothSimple(angle);
-            if (smooth <= MIN_SMOOTH_COEFF)
-            {
-                smoothList.Add((mainTimer.ElapsedMilliseconds + TIME_TO_SMOOTH_MS, smooth, angle));
-            }
+            var smooth = ApproximateChaosSmoothFull(angle);
+            smoothList.Add((mainTimer.ElapsedMilliseconds + TIME_TO_SMOOTH_MS, smooth, angle));
         }
 
         private float CalculateAverageAngle()
         {
             float averageAngle = 0;
-            if (lastMovementList.Count < Math.Max(2, HOW_MANY_MOVEMENTS / 2))
+            if (lastMovementList.Count < 2)
             {
                 return averageAngle;
             }
@@ -73,27 +70,13 @@ namespace NNHelper
         }
 
         // ReSharper disable once UnusedMember.Local
-        private static float ApproximateChaosSmoothSimple(float averageAngle)
+        private static float ApproximateChaosSmoothFull(float averageAngle)
         {
-            if (averageAngle < 15f)
-                return 1f;
-            if (averageAngle < 25f)
-                return 0.75f;
-            if (averageAngle < 35f)
-                return 0.5f;
-            if (averageAngle < 45f)
-                return 0.33f;
-            if (averageAngle < 55f)
-                return 0.25f;
-            return 0.2f;
+            var tmp = 1 - 0.00888889 * averageAngle;
+            return (float)Math.Max(0.2, tmp);
         }
 
-        /// <summary>
-        /// linear fit {{15, 1}, {30, 0.5}, {45, 0.33}, {90, 0.2}}
-        /// </summary>
-        /// <param name="angle"></param>
-        /// <returns></returns>
-        private static float ApproximateChaosSmoothFull(float angle)
+        private static float ApproximateChaosSmoothSimple(float angle)
         {
             float tmp;
             if (angle <= 15)
@@ -127,9 +110,9 @@ namespace NNHelper
             foreach (var (smoothTill, smoothCoeff, _) in smoothList)
             {
                 var currentTime = mainTimer.ElapsedMilliseconds;
-                if (mainTimer.ElapsedMilliseconds < smoothTill && smoothCoeff <= MIN_SMOOTH_COEFF)
+                if (mainTimer.ElapsedMilliseconds < smoothTill)
                 {
-                    var currentWeight = (smoothTill - currentTime) / (float)TIME_TO_SMOOTH_MS;
+                    var currentWeight = smoothTill - currentTime;
                     if (!float.IsNaN(currentWeight) && !float.IsInfinity(currentWeight))
                     {
                         complexSmooth += currentWeight * smoothCoeff;
@@ -140,7 +123,7 @@ namespace NNHelper
             }
 
             complexSmooth /= weightSum;
-            if (mainTimer.ElapsedMilliseconds > 10000)
+            if (mainTimer.ElapsedMilliseconds > 5000)
             {
                 
             }
