@@ -61,8 +61,7 @@ namespace NNHelper
                 if (aimEnabled)
                 {
                     cursorPosition = Cursor.Position;
-                    //if (IsNewFrameReady()) // update enemy info
-                    if (true)
+                    if (IsNewFrameReady()) // update enemy info
                     {
                         syncFramesProcessed++;
                         var bitmap = gc.ScreenCapture();
@@ -130,7 +129,7 @@ namespace NNHelper
             float smooth;
             if (dist < 80) smooth = 1f;
             else if (dist < 160) smooth = 0.5f;
-            else smooth = 0.33f;
+            else smooth = 1/3f;
             return smooth;
         }
 

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Windows.Forms.VisualStyles;
 
 namespace NNHelper
 {
@@ -69,38 +68,46 @@ namespace NNHelper
             return averageAngle;
         }
 
-        // ReSharper disable once UnusedMember.Local
-        private static float ApproximateChaosSmoothFull(float averageAngle)
+        /// <summary>
+        /// quadratic fit {{10, 1}, {50, 0.7}, {90, 0.2}}
+        /// </summary>
+        /// <param name="x"></param>
+        /// <returns></returns>
+        private static float ApproximateChaosSmoothFull(float x)
         {
-            var tmp = 1 - 0.00888889 * averageAngle;
-            return (float)Math.Max(0.2, tmp);
+            if (x < 10)
+                return 1f;
+            if (x > 90)
+                return 0.2f;
+            var tmp = -0.0000625f * x * x - 0.00375f * x + 1.04375f;
+            return Math.Min(tmp, 1);
         }
 
-        private static float ApproximateChaosSmoothSimple(float angle)
-        {
-            float tmp;
-            if (angle <= 15)
-            {
-                tmp = 1f;
-            }
-            else if (angle > 15 && angle <= 30)
-            {
-                tmp = 0.75f;
-            }
-            else if (angle > 30 && angle <= 45)
-            {
-                tmp = 0.5f;
-            }
-            else if (angle > 45 && angle <= 90)
-            {
-                tmp = 0.33f;
-            }
-            else
-            {
-                tmp = 0.25f;
-            }
-            return tmp;
-        }
+        //private static float ApproximateChaosSmoothSimple(float angle)
+        //{
+        //    float tmp;
+        //    if (angle <= 15)
+        //    {
+        //        tmp = 1f;
+        //    }
+        //    else if (angle > 15 && angle <= 30)
+        //    {
+        //        tmp = 0.75f;
+        //    }
+        //    else if (angle > 30 && angle <= 45)
+        //    {
+        //        tmp = 0.5f;
+        //    }
+        //    else if (angle > 45 && angle <= 90)
+        //    {
+        //        tmp = 0.33f;
+        //    }
+        //    else
+        //    {
+        //        tmp = 0.25f;
+        //    }
+        //    return tmp;
+        //}
 
         public float GetSmooth()
         {
@@ -110,23 +117,14 @@ namespace NNHelper
             foreach (var (smoothTill, smoothCoeff, _) in smoothList)
             {
                 var currentTime = mainTimer.ElapsedMilliseconds;
-                if (mainTimer.ElapsedMilliseconds < smoothTill)
-                {
-                    var currentWeight = smoothTill - currentTime;
-                    if (!float.IsNaN(currentWeight) && !float.IsInfinity(currentWeight))
-                    {
-                        complexSmooth += currentWeight * smoothCoeff;
-                        weightSum += currentWeight;
-                        i++;
-                    }
-                }
+                if (mainTimer.ElapsedMilliseconds >= smoothTill) continue;
+                var currentWeight = smoothTill - currentTime;
+                if (float.IsNaN(currentWeight) || float.IsInfinity(currentWeight)) continue;
+                complexSmooth += currentWeight * smoothCoeff;
+                weightSum += currentWeight;
+                i++;
             }
-
             complexSmooth /= weightSum;
-            if (mainTimer.ElapsedMilliseconds > 5000)
-            {
-                
-            }
             return i == 0 ? 1f : complexSmooth;
         }
     }
