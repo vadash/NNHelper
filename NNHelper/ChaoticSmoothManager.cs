@@ -6,8 +6,8 @@ namespace NNHelper
 {
     public class ChaoticSmoothManager
     {
-        private const int TIME_TO_SMOOTH_MS = 500;
-        private const int HOW_MANY_MOVEMENTS = 6;
+        private const int TIME_TO_SMOOTH_MS = 125;
+        private const int HOW_MANY_MOVEMENTS = 4;
         private const float MIN_SMOOTH_COEFF = 0.9f;
         private const float TOLERANCE = 0.01f;
         private readonly List<(float dx, float dy, float time)> lastMovementList = new List<(float, float, float)>();
@@ -21,7 +21,7 @@ namespace NNHelper
 
         public void AddPoint(float dx, float dy)
         {
-            if (Math.Abs(dx) < 3f + TOLERANCE && Math.Abs(dy) < 3f + TOLERANCE) return;
+            if (Math.Abs(dx) < 1f + TOLERANCE && Math.Abs(dy) < 1f + TOLERANCE) return;
             lastMovementList.Add((dx, dy, mainTimer.ElapsedMilliseconds));
             CleanOld();
             Update();
@@ -42,7 +42,7 @@ namespace NNHelper
         private void Update()
         {
             var angle = CalculateAverageAngle();
-            var smooth = ApproximateChaosSmoothFull(angle);
+            var smooth = ApproximateChaosSmoothSimple(angle);
             if (smooth <= MIN_SMOOTH_COEFF)
             {
                 smoothList.Add((mainTimer.ElapsedMilliseconds + TIME_TO_SMOOTH_MS, smooth, angle));
@@ -52,7 +52,7 @@ namespace NNHelper
         private float CalculateAverageAngle()
         {
             float averageAngle = 0;
-            if (lastMovementList.Count < Math.Max(3, HOW_MANY_MOVEMENTS / 2))
+            if (lastMovementList.Count < Math.Max(2, HOW_MANY_MOVEMENTS / 2))
             {
                 return averageAngle;
             }
@@ -73,20 +73,20 @@ namespace NNHelper
         }
 
         // ReSharper disable once UnusedMember.Local
-        //private static float ApproximateChaosSmoothSimple(float averageAngle)
-        //{
-        //    if (averageAngle < 15f)
-        //        return 1f;
-        //    if (averageAngle < 25f)
-        //        return 0.5f;
-        //    if (averageAngle < 35f)
-        //        return 0.33f;
-        //    if (averageAngle < 45f)
-        //        return 0.25f;
-        //    if (averageAngle < 55f)
-        //        return 0.2f;
-        //    return 0.15f;
-        //}
+        private static float ApproximateChaosSmoothSimple(float averageAngle)
+        {
+            if (averageAngle < 15f)
+                return 1f;
+            if (averageAngle < 25f)
+                return 0.75f;
+            if (averageAngle < 35f)
+                return 0.5f;
+            if (averageAngle < 45f)
+                return 0.33f;
+            if (averageAngle < 55f)
+                return 0.25f;
+            return 0.2f;
+        }
 
         /// <summary>
         /// linear fit {{15, 1}, {30, 0.5}, {45, 0.33}, {90, 0.2}}
@@ -102,19 +102,19 @@ namespace NNHelper
             }
             else if (angle > 15 && angle <= 30)
             {
-                tmp = 1.5f - 0.0333333f * angle;
+                tmp = 0.75f;
             }
             else if (angle > 30 && angle <= 45)
             {
-                tmp = 0.84f - 0.0113333f * angle;
+                tmp = 0.5f;
             }
             else if (angle > 45 && angle <= 90)
             {
-                tmp = 0.46f - 0.00288889f * angle;
+                tmp = 0.33f;
             }
             else
             {
-                tmp = 0.2f;
+                tmp = 0.25f;
             }
             return tmp;
         }
@@ -130,14 +130,20 @@ namespace NNHelper
                 if (mainTimer.ElapsedMilliseconds < smoothTill && smoothCoeff <= MIN_SMOOTH_COEFF)
                 {
                     var currentWeight = (smoothTill - currentTime) / (float)TIME_TO_SMOOTH_MS;
-                    complexSmooth += currentWeight * smoothCoeff;
-                    weightSum += currentWeight;
-                    i++;
+                    if (!float.IsNaN(currentWeight) && !float.IsInfinity(currentWeight))
+                    {
+                        complexSmooth += currentWeight * smoothCoeff;
+                        weightSum += currentWeight;
+                        i++;
+                    }
                 }
             }
 
             complexSmooth /= weightSum;
-
+            if (mainTimer.ElapsedMilliseconds > 10000)
+            {
+                
+            }
             return i == 0 ? 1f : complexSmooth;
         }
     }

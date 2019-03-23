@@ -61,24 +61,25 @@ namespace NNHelper
                 if (aimEnabled)
                 {
                     cursorPosition = Cursor.Position;
-                    if (IsNewFrameReady()) // update enemy info
+                    //if (IsNewFrameReady()) // update enemy info
+                    if (true)
                     {
                         syncFramesProcessed++;
                         var bitmap = gc.ScreenCapture();
                         float curDx;
                         float curDy;
                         YoloItem currentEnemy;
-                        //if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES) // do tracking
-                        //{
-                        //    currentEnemy = nn.Track(bitmap);
-                        //    if (currentEnemy == null)
-                        //    {
-                        //        trackSkippedFrames++;
-                        //        continue;
-                        //    }
-                        //    (curDx, curDy) = GetAimPoint(currentEnemy);
-                        //}
-                        //else // using regular search
+                        if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES) // do tracking
+                        {
+                            currentEnemy = nn.Track(bitmap);
+                            if (currentEnemy == null)
+                            {
+                                trackSkippedFrames++;
+                                continue;
+                            }
+                            (curDx, curDy) = GetAimPoint(currentEnemy);
+                        }
+                        else // using regular search
                         {
                             var enemies = nn.GetItems(bitmap);
                             if (enemies == null || !enemies.Any())
@@ -118,7 +119,7 @@ namespace NNHelper
         private (int, int) ApplySmoothScale(float curDx, float curDy, float smooth)
         {
             if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
-                return (Convert.ToInt32(curDx * smooth), Convert.ToInt32(curDy * smooth));
+                return (Convert.ToInt32(2.5f * curDx * smooth), Convert.ToInt32(2.5f * curDy * smooth));
             return (0, 0);
         }
 
