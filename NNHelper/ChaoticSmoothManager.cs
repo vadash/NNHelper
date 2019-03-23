@@ -6,8 +6,9 @@ namespace NNHelper
 {
     public class ChaoticSmoothManager
     {
-        private const int TIME_TO_SMOOTH_MS = 1000;
+        private const int TIME_TO_SMOOTH_MS = 500;
         private const int HOW_MANY_MOVEMENTS = 6;
+        private const float MIN_SMOOTH_COEFF = 0.9f;
         private const float TOLERANCE = 0.01f;
         private readonly List<(float dx, float dy, float time)> lastMovementList = new List<(float, float, float)>();
         private readonly Stopwatch mainTimer = new Stopwatch();
@@ -36,18 +37,13 @@ namespace NNHelper
             {
                 smoothList.RemoveAt(0);
             }
-
-            if (smoothList.Count > 10)
-            {
-                
-            }
         }
 
         private void Update()
         {
             var angle = CalculateAverageAngle();
             var smooth = ApproximateChaosSmoothFull(angle);
-            if (smooth < 0.9f)
+            if (smooth <= MIN_SMOOTH_COEFF)
             {
                 smoothList.Add((mainTimer.ElapsedMilliseconds + TIME_TO_SMOOTH_MS, smooth, angle));
             }
@@ -125,18 +121,14 @@ namespace NNHelper
 
         public float GetSmooth()
         {
-            //var minSmooth = 1f;
-            //var aveSmooth = 0f;
             var complexSmooth = 0f;
             var weightSum = 0f;
             var i = 0;
             foreach (var (smoothTill, smoothCoeff, _) in smoothList)
             {
                 var currentTime = mainTimer.ElapsedMilliseconds;
-                if (mainTimer.ElapsedMilliseconds < smoothTill)
+                if (mainTimer.ElapsedMilliseconds < smoothTill && smoothCoeff <= MIN_SMOOTH_COEFF)
                 {
-                    //minSmooth = Math.Min(minSmooth, smoothCoeff);
-                    //aveSmooth += smoothCoeff;
                     var currentWeight = (smoothTill - currentTime) / (float)TIME_TO_SMOOTH_MS;
                     complexSmooth += currentWeight * smoothCoeff;
                     weightSum += currentWeight;
@@ -144,7 +136,6 @@ namespace NNHelper
                 }
             }
 
-            //aveSmooth /= i;
             complexSmooth /= weightSum;
 
             return i == 0 ? 1f : complexSmooth;

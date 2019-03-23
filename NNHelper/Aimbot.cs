@@ -68,17 +68,17 @@ namespace NNHelper
                         float curDx;
                         float curDy;
                         YoloItem currentEnemy;
-                        if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES) // do tracking
-                        {
-                            currentEnemy = nn.Track(bitmap);
-                            if (currentEnemy == null)
-                            {
-                                trackSkippedFrames++;
-                                continue;
-                            }
-                            (curDx, curDy) = GetAimPoint(currentEnemy);
-                        }
-                        else // using regular search
+                        //if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES) // do tracking
+                        //{
+                        //    currentEnemy = nn.Track(bitmap);
+                        //    if (currentEnemy == null)
+                        //    {
+                        //        trackSkippedFrames++;
+                        //        continue;
+                        //    }
+                        //    (curDx, curDy) = GetAimPoint(currentEnemy);
+                        //}
+                        //else // using regular search
                         {
                             var enemies = nn.GetItems(bitmap);
                             if (enemies == null || !enemies.Any())
@@ -110,7 +110,7 @@ namespace NNHelper
                 else
                 {
                     dh.DrawDisabled();
-                    Thread.Sleep(500);
+                    Thread.Sleep(250);
                 }
             }
         }
