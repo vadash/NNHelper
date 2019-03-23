@@ -6,12 +6,12 @@ namespace NNHelper
 {
     public class ChaoticSmoothManager
     {
-        private const int TIME_TO_SMOOTH_MS = 250;
-        private const int HOW_MANY_MOVEMENTS = 4;
+        private const int TIME_TO_SMOOTH_MS = 1000;
+        private const int HOW_MANY_MOVEMENTS = 6;
         private const float TOLERANCE = 0.01f;
         private readonly List<(float dx, float dy, float time)> lastMovementList = new List<(float, float, float)>();
         private readonly Stopwatch mainTimer = new Stopwatch();
-        private readonly List<(long smoothTill, float smooth)> smoothList = new List<(long smoothTill, float smooth)>();
+        private readonly List<(long smoothTill, float smooth, float angle)> smoothList = new List<(long smoothTill, float smooth, float angle)>();
 
         public ChaoticSmoothManager()
         {
@@ -20,7 +20,7 @@ namespace NNHelper
 
         public void AddPoint(float dx, float dy)
         {
-            if (Math.Abs(dx) < 1f && Math.Abs(dy) < 1f) return;
+            if (Math.Abs(dx) < 3f + TOLERANCE && Math.Abs(dy) < 3f + TOLERANCE) return;
             lastMovementList.Add((dx, dy, mainTimer.ElapsedMilliseconds));
             CleanOld();
             Update();
@@ -36,12 +36,21 @@ namespace NNHelper
             {
                 smoothList.RemoveAt(0);
             }
+
+            if (smoothList.Count > 10)
+            {
+                
+            }
         }
 
         private void Update()
         {
             var angle = CalculateAverageAngle();
-            smoothList.Add((mainTimer.ElapsedMilliseconds + TIME_TO_SMOOTH_MS, ApproximateChaosSmoothSimple(angle)));
+            var smooth = ApproximateChaosSmoothFull(angle);
+            if (smooth < 0.9f)
+            {
+                smoothList.Add((mainTimer.ElapsedMilliseconds + TIME_TO_SMOOTH_MS, smooth, angle));
+            }
         }
 
         private float CalculateAverageAngle()
@@ -68,41 +77,77 @@ namespace NNHelper
         }
 
         // ReSharper disable once UnusedMember.Local
-        private static float ApproximateChaosSmoothSimple(float averageAngle)
-        {
-            if (averageAngle < 30f)
-                return 1f;
-            if (averageAngle < 60f)
-                return 0.5f;
-            return 0.33f;
-        }
+        //private static float ApproximateChaosSmoothSimple(float averageAngle)
+        //{
+        //    if (averageAngle < 15f)
+        //        return 1f;
+        //    if (averageAngle < 25f)
+        //        return 0.5f;
+        //    if (averageAngle < 35f)
+        //        return 0.33f;
+        //    if (averageAngle < 45f)
+        //        return 0.25f;
+        //    if (averageAngle < 55f)
+        //        return 0.2f;
+        //    return 0.15f;
+        //}
 
         /// <summary>
-        /// linear fit {{30, 1}, {60, 0.5}, {90, 0.25}
+        /// linear fit {{15, 1}, {30, 0.5}, {45, 0.33}, {90, 0.2}}
         /// </summary>
-        /// <param name="averageAngle"></param>
+        /// <param name="angle"></param>
         /// <returns></returns>
-        private static float ApproximateChaosSmoothFull(float averageAngle)
+        private static float ApproximateChaosSmoothFull(float angle)
         {
-            if (averageAngle < 30) averageAngle = 30;
-            if (averageAngle > 90) averageAngle = 90;
-            var tmp = (float)(1.33333 - 0.0125 * averageAngle);
-            if (tmp < 0.25) tmp = 0.25f;
-            if (tmp > 1f) tmp = 1f;
+            float tmp;
+            if (angle <= 15)
+            {
+                tmp = 1f;
+            }
+            else if (angle > 15 && angle <= 30)
+            {
+                tmp = 1.5f - 0.0333333f * angle;
+            }
+            else if (angle > 30 && angle <= 45)
+            {
+                tmp = 0.84f - 0.0113333f * angle;
+            }
+            else if (angle > 45 && angle <= 90)
+            {
+                tmp = 0.46f - 0.00288889f * angle;
+            }
+            else
+            {
+                tmp = 0.2f;
+            }
             return tmp;
         }
 
         public float GetSmooth()
         {
-            var minSmooth = 1f;
-            foreach (var (smoothTill, smoothCoeff) in smoothList)
+            //var minSmooth = 1f;
+            //var aveSmooth = 0f;
+            var complexSmooth = 0f;
+            var weightSum = 0f;
+            var i = 0;
+            foreach (var (smoothTill, smoothCoeff, _) in smoothList)
             {
+                var currentTime = mainTimer.ElapsedMilliseconds;
                 if (mainTimer.ElapsedMilliseconds < smoothTill)
                 {
-                    minSmooth = Math.Min(minSmooth, smoothCoeff);
+                    //minSmooth = Math.Min(minSmooth, smoothCoeff);
+                    //aveSmooth += smoothCoeff;
+                    var currentWeight = (smoothTill - currentTime) / (float)TIME_TO_SMOOTH_MS;
+                    complexSmooth += currentWeight * smoothCoeff;
+                    weightSum += currentWeight;
+                    i++;
                 }
             }
-            return minSmooth;
+
+            //aveSmooth /= i;
+            complexSmooth /= weightSum;
+
+            return i == 0 ? 1f : complexSmooth;
         }
     }
 }

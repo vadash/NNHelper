@@ -96,7 +96,7 @@ namespace NNHelper
                             chaoticSmoothManager.AddPoint(curDx, curDy);
                             var chaosSmooth = chaoticSmoothManager.GetSmooth();
                             var distanceSmooth = CalculateDistanceSmoothSimple(curDx, curDy);
-                            var (xDelta, yDelta) = ApplySmoothScale(curDx, curDy, Math.Min(chaosSmooth, distanceSmooth));
+                            var (xDelta, yDelta) = ApplySmoothScale(curDx, curDy, Math.Min(distanceSmooth, chaosSmooth));
                             MoveMouse(xDelta, yDelta);
                         }
                         dh.DrawPlaying(s, currentEnemy, IsShooting());
@@ -127,10 +127,9 @@ namespace NNHelper
             var dist2 = curDx * curDx + curDy * curDy;
             var dist = Math.Sqrt(dist2);
             float smooth;
-            if (dist < 40) smooth = 1f;
-            else if (dist < 80) smooth = 0.5f;
-            else if (dist < 160) smooth = 0.33f;
-            else smooth = 0.25f;
+            if (dist < 80) smooth = 1f;
+            else if (dist < 160) smooth = 0.5f;
+            else smooth = 0.33f;
             return smooth;
         }
 
