@@ -79,6 +79,11 @@ namespace NNHelper
             }
         }
 
+        public void SetTrackingPoint(YoloItem item)
+        {
+            yoloTracking.SetTrackingObject(item);
+        }
+
         public YoloTrackingItem Track(Image img)
         {
             using (var ms = new MemoryStream())

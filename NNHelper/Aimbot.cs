@@ -80,7 +80,8 @@ namespace NNHelper
                         }
                         else // using regular search
                         {
-                            var enemies = nn.GetItems(bitmap);
+                            var confidence = IsShooting() ? 0.2f : 0.4f;
+                            var enemies = nn.GetItems(bitmap, confidence);
                             if (enemies == null || !enemies.Any())
                             {
                                 dh.DrawDisabled();
@@ -89,6 +90,7 @@ namespace NNHelper
                             trackEnabled = true;
                             trackSkippedFrames = 0;
                             currentEnemy = GetClosestEnemy(enemies);
+                            nn.SetTrackingPoint(currentEnemy);
                             (curDx, curDy) = GetAimPoint(currentEnemy);
                         }
                         if (IsShooting())
