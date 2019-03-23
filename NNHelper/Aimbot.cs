@@ -30,7 +30,7 @@ namespace NNHelper
         //tracking
         private bool trackEnabled;
         private int trackSkippedFrames;
-        private const int TRACK_MAX_SKIPPED_FRAMES = 1;
+        private const int TRACK_MAX_SKIPPED_FRAMES = 2;
 
         //debug
         private readonly Stopwatch debugPerformanceStopwatch = new Stopwatch();
@@ -65,24 +65,31 @@ namespace NNHelper
                     {
                         syncFramesProcessed++;
                         var bitmap = gc.ScreenCapture();
-                        float curDx = 0, curDy = 0;
+                        float curDx;
+                        float curDy;
+                        YoloItem currentEnemy;
                         if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES) // do tracking
                         {
-                            var item = nn.Track(bitmap);
-                            if (item == null)
+                            currentEnemy = nn.Track(bitmap);
+                            if (currentEnemy == null)
                             {
                                 trackSkippedFrames++;
                                 continue;
                             }
-                            (curDx, curDy) = GetAimPoint(item);
+                            (curDx, curDy) = GetAimPoint(currentEnemy);
                         }
                         else // using regular search
                         {
-                            var items = nn.GetItems(bitmap);
-                            if (items == null || !items.Any()) continue;
+                            var enemies = nn.GetItems(bitmap);
+                            if (enemies == null || !enemies.Any())
+                            {
+                                dh.DrawDisabled();
+                                continue;
+                            }
                             trackEnabled = true;
                             trackSkippedFrames = 0;
-                            (curDx, curDy) = GetAimPoint(items);
+                            currentEnemy = GetClosestEnemy(enemies);
+                            (curDx, curDy) = GetAimPoint(currentEnemy);
                         }
                         if (IsShooting())
                         {
@@ -92,13 +99,13 @@ namespace NNHelper
                             var (xDelta, yDelta) = ApplySmoothScale(curDx, curDy, Math.Min(chaosSmooth, distanceSmooth));
                             MoveMouse(xDelta, yDelta);
                         }
+                        dh.DrawPlaying(s, currentEnemy, IsShooting());
                     }
                     else // no need to update enemy info
                     {
                         SynchronizeToGameFps(gc);
                         SleepTillNextFrame();
                     }
-                    //dh.DrawPlaying(cursorPosition, "", s, items, _firemode);
                 }
                 else
                 {
@@ -122,8 +129,8 @@ namespace NNHelper
             float smooth;
             if (dist < 40) smooth = 1f;
             else if (dist < 80) smooth = 0.5f;
-            else if (dist < 160) smooth = 0.4f;
-            else smooth = 0.3f;
+            else if (dist < 160) smooth = 0.33f;
+            else smooth = 0.25f;
             return smooth;
         }
 
@@ -190,12 +197,12 @@ namespace NNHelper
                 return (curDx, curDy);
             }
         }
-        
-        private (float curDx, float curDy) GetAimPoint(IEnumerable<YoloItem> enemies)
+
+        private YoloItem GetClosestEnemy(IEnumerable<YoloItem> enemies)
         {
             var nearestEnemy = enemies.OrderBy(e =>
                 DistanceBetweenCross(e.X + e.Width / 2f, e.Y + e.Height / 2f)).First();
-            return GetAimPoint(nearestEnemy);
+            return nearestEnemy;
         }
 
         private void SynchronizeToGameFps(GController gc, bool bForce = false)

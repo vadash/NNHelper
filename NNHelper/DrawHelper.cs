@@ -16,11 +16,10 @@ namespace NNHelper
             mainWnd = new GraphicWindow(settings.SizeX, settings.SizeY);
         }
 
-        public void DrawPlaying(Point curMousePos, string selectedObject, Settings settings, IEnumerable<YoloItem> items,
-            bool firemode)
+        public void DrawPlaying(Settings settings, YoloItem enemy, bool firemode)
         {
-            mainWnd.window.X = curMousePos.X - s.SizeX / 2;
-            mainWnd.window.Y = curMousePos.Y - s.SizeY / 2;
+            mainWnd.window.X = 1920/2 - s.SizeX / 2;
+            mainWnd.window.Y = 1080/2 - s.SizeY / 2;
             mainWnd.graphics.BeginScene();
             mainWnd.graphics.ClearScene();
             // draw area
@@ -31,7 +30,7 @@ namespace NNHelper
             //mainWnd.graphics.WriteText(
             //    $"FPS {mainWnd.graphics.FPS}");
             // draw targets
-            foreach (var item in items) DrawItem(item);
+            DrawItem(enemy);
             mainWnd.graphics.EndScene();
         }
 
@@ -40,7 +39,7 @@ namespace NNHelper
             var head = Util.GetEnemyHead(item);
             var body = Util.GetEnemyBody(item);
             mainWnd.graphics.DrawRectangle(mainWnd.graphics.redBrush, body, 2);
-            if (head.Width > 10 || head.Height > 20)
+            if (head.Height >= Settings.MinHeadSize)
             {
                 mainWnd.graphics.DrawRectangle(mainWnd.graphics.blueBrush, head, 2);
             }

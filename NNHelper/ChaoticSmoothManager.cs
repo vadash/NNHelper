@@ -7,11 +7,11 @@ namespace NNHelper
     public class ChaoticSmoothManager
     {
         private const int TIME_TO_SMOOTH_MS = 250;
-        private const float TOLERANCE = 0.001f;
+        private const int HOW_MANY_MOVEMENTS = 4;
+        private const float TOLERANCE = 0.01f;
         private readonly List<(float dx, float dy, float time)> lastMovementList = new List<(float, float, float)>();
         private readonly Stopwatch mainTimer = new Stopwatch();
-        private float smooth = 1f;
-        private long smoothTillThisTime;
+        private readonly List<(long smoothTill, float smooth)> smoothList = new List<(long smoothTill, float smooth)>();
 
         public ChaoticSmoothManager()
         {
@@ -28,23 +28,26 @@ namespace NNHelper
 
         private void CleanOld()
         {
-            if (lastMovementList.Count > 4)
+            if (lastMovementList.Count > HOW_MANY_MOVEMENTS)
             {
                 lastMovementList.RemoveAt(0);
+            }
+            if (smoothList.Count > 0 && mainTimer.ElapsedMilliseconds > smoothList[0].smoothTill)
+            {
+                smoothList.RemoveAt(0);
             }
         }
 
         private void Update()
         {
             var angle = CalculateAverageAngle();
-            smooth = ApproximateChaosSmoothSimple(angle);
-            smoothTillThisTime = mainTimer.ElapsedMilliseconds + TIME_TO_SMOOTH_MS;
+            smoothList.Add((mainTimer.ElapsedMilliseconds + TIME_TO_SMOOTH_MS, ApproximateChaosSmoothSimple(angle)));
         }
 
         private float CalculateAverageAngle()
         {
             float averageAngle = 0;
-            if (lastMovementList.Count < 2)
+            if (lastMovementList.Count < Math.Max(3, HOW_MANY_MOVEMENTS / 2))
             {
                 return averageAngle;
             }
@@ -70,8 +73,8 @@ namespace NNHelper
             if (averageAngle < 30f)
                 return 1f;
             if (averageAngle < 60f)
-                return 0.75f;
-            return 0.5f;
+                return 0.5f;
+            return 0.33f;
         }
 
         /// <summary>
@@ -91,7 +94,15 @@ namespace NNHelper
 
         public float GetSmooth()
         {
-            return mainTimer.ElapsedMilliseconds < smoothTillThisTime ? smooth : 1f;
+            var minSmooth = 1f;
+            foreach (var (smoothTill, smoothCoeff) in smoothList)
+            {
+                if (mainTimer.ElapsedMilliseconds < smoothTill)
+                {
+                    minSmooth = Math.Min(minSmooth, smoothCoeff);
+                }
+            }
+            return minSmooth;
         }
     }
 }
