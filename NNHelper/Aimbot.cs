@@ -15,7 +15,7 @@ namespace NNHelper
     public class Aimbot
     {
         private static long _lastTick = DateTime.Now.Ticks;
-        //private Point cursorPosition;
+        private Point cursorPosition;
         private readonly DrawHelper dh;
         private bool aimEnabled = true;
         private readonly NeuralNet nn;
@@ -36,6 +36,7 @@ namespace NNHelper
         //private readonly Stopwatch debugPerformanceStopwatch = new Stopwatch();
         //private int debugTotalTimesRun = 0;
         //private int debugFoundTarget = 0;
+        //private static List<float> SyncList = new List<float>();
 
         public Aimbot(Settings settings, NeuralNet neuralNet)
         {
@@ -50,7 +51,6 @@ namespace NNHelper
             var gc = new GController(s);
             StartReadKeysThread();
             SynchronizeToGameFps(gc, true);
-            var oldFrame = gc.ScreenCapture();
             mainCycleWatch.Start();
             syncFpsWatch.Start();
             while (true)
@@ -61,11 +61,11 @@ namespace NNHelper
                 //}
                 if (aimEnabled)
                 {
-                    //cursorPosition = Cursor.Position;
-                    if (CaptureNewFrame(gc, ref oldFrame, out var newFrame)) // update enemy info
+                    cursorPosition = Cursor.Position;
+                    if (IsNewFrameReady()) // update enemy info
                     {
                         syncFramesProcessed++;
-                        //Bitmap bitmap = gc.ScreenCapture();
+                        var newFrame = gc.ScreenCapture();
                         float curDx;
                         float curDy;
                         YoloItem currentEnemy;
@@ -77,11 +77,11 @@ namespace NNHelper
                                 trackSkippedFrames++;
                                 continue;
                             }
-                            (curDx, curDy) = GetAimPoint(currentEnemy);
+                            (curDx, curDy) = GetAimPoint(currentEnemy, cursorPosition);
                         }
                         else // using regular search
                         {
-                            var confidence = IsShooting() ? 0.2f : 0.4f;
+                            var confidence = IsAiming() ? 0.2f : 0.4f;
                             var enemies = nn.GetItems(newFrame, confidence);
                             if (enemies == null || !enemies.Any())
                             {
@@ -92,17 +92,17 @@ namespace NNHelper
                             trackSkippedFrames = 0;
                             currentEnemy = GetClosestEnemy(enemies);
                             nn.SetTrackingPoint(currentEnemy);
-                            (curDx, curDy) = GetAimPoint(currentEnemy);
+                            (curDx, curDy) = GetAimPoint(currentEnemy, cursorPosition);
                         }
-                        if (IsShooting())
+                        if (IsAiming())
                         {
                             chaoticSmoothManager.AddPoint(curDx, curDy);
-                            var chaosSmooth = chaoticSmoothManager.GetSmooth();
+                            //var chaosSmooth = chaoticSmoothManager.GetSmooth();
                             var distanceSmooth = CalculateDistanceSmoothSimple(curDx, curDy);
-                            var (xDelta, yDelta) = ApplySmoothScale(curDx, curDy, Math.Min(distanceSmooth, chaosSmooth));
+                            var (xDelta, yDelta) = ApplySmoothScale(curDx, curDy, Math.Min(distanceSmooth, 1f));
                             MoveMouse(xDelta, yDelta);
                         }
-                        dh.DrawPlaying(s, currentEnemy, IsShooting());
+                        dh.DrawPlaying(s, currentEnemy, IsAiming());
                     }
                     else // no need to update enemy info
                     {
@@ -130,9 +130,9 @@ namespace NNHelper
             var dist2 = curDx * curDx + curDy * curDy;
             var dist = Math.Sqrt(dist2);
             float smooth;
-            if (dist < 80) smooth = 1f;
-            else if (dist < 160) smooth = 0.5f;
-            else smooth = 0.33f;
+            if (dist < 40) smooth = 0.5f;
+            else if (dist < 160) smooth = 0.33f;
+            else smooth = 0.25f;
             return smooth;
         }
 
@@ -140,17 +140,9 @@ namespace NNHelper
         #region Next frame math
         private int TimeToNextFrame()
         {
-            return (int)Math.Ceiling(syncFramesProcessed * (1000f / 60f) - syncFpsWatch.ElapsedMilliseconds);
+            return (int)Math.Ceiling(syncFramesProcessed * (1000f / 75f) - syncFpsWatch.ElapsedMilliseconds);
         }
 
-        private static bool CaptureNewFrame(GController gc, ref Bitmap oldFrame, out Bitmap newFrame)
-        {
-            while (Util.Equals(oldFrame, newFrame = gc.ScreenCapture()))
-            {
-            }
-            oldFrame = newFrame;
-            return true;
-        }
         private bool IsNewFrameReady()
         {
             return TimeToNextFrame() <= 0;
@@ -186,7 +178,7 @@ namespace NNHelper
             }).Start();
         }
 
-        private (float curDx, float curDy) GetAimPoint(YoloItem enemy)
+        private (float curDx, float curDy) GetAimPoint(YoloItem enemy, Point cursorPosition)
         {
             var nearestEnemyHead = Util.GetEnemyHead(enemy);
             var nearestEnemyBody = Util.GetEnemyBody(enemy);
@@ -220,7 +212,7 @@ namespace NNHelper
             if (bForce || syncFpsWatch.ElapsedMilliseconds >= 30000)
             {
                 var bitmap = gc.ScreenCapture();
-                while (Util.Equals(bitmap, gc.ScreenCapture()))
+                while (Util.Equals(bitmap, gc.ScreenCapture(), 1000))
                 {
                 }
                 syncFramesProcessed = 0;
@@ -228,7 +220,7 @@ namespace NNHelper
             }
         }
 
-        public bool IsShooting()
+        public bool IsAiming()
         {
             return DateTime.Now.Ticks < _lastTick + 20000000;
         }

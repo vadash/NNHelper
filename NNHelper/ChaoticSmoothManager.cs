@@ -6,7 +6,7 @@ namespace NNHelper
 {
     public class ChaoticSmoothManager
     {
-        private const int TIME_TO_SMOOTH_MS = 500;
+        private const int TIME_TO_SMOOTH_MS = 1000;
         private const int TIME_TO_TRACK_MS = 1000;
         private const float TOLERANCE = 0.01f;
         private readonly List<(float dx, float dy, float validTill)> lastMovementList = new List<(float, float, float)>();
@@ -67,17 +67,17 @@ namespace NNHelper
         }
 
         /// <summary>
-        /// quadratic fit {{10, 1}, {50, 0.7}, {90, 0.2}}
+        /// quadratic fit {{0, 1}, {50, 0.5}, {90, 0.1}}
         /// </summary>
         /// <param name="x"></param>
         /// <returns></returns>
         private static float ApproximateChaosSmoothFull(float x)
         {
-            if (x < 10)
+            if (x < 0)
                 return 1f;
             if (x > 90)
-                return 0.2f;
-            var tmp = -0.0000625f * x * x - 0.00375f * x + 1.04375f;
+                return 0.1f;
+            var tmp = 1f - 0.01f * x;
             return Math.Min(tmp, 1);
         }
 
@@ -109,9 +109,9 @@ namespace NNHelper
 
         public float GetSmooth()
         {
+            return 1f;
             var complexSmooth = 0f;
             var weightSum = 0f;
-            var i = 0;
             foreach (var (smoothTill, smoothCoeff, _) in smoothList)
             {
                 var currentTime = mainTimer.ElapsedMilliseconds;
@@ -120,10 +120,9 @@ namespace NNHelper
                 if (float.IsNaN(currentWeight) || float.IsInfinity(currentWeight)) continue;
                 complexSmooth += currentWeight * smoothCoeff;
                 weightSum += currentWeight;
-                i++;
             }
             complexSmooth /= weightSum;
-            return i == 0 ? 1f : complexSmooth;
+            return Math.Abs(weightSum) < TOLERANCE ? 1f : complexSmooth;
         }
     }
 }

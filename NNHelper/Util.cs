@@ -4,6 +4,9 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Alturos.Yolo.Model;
 using System.Drawing;
+using System.IO;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 using Rectangle = GameOverlay.Drawing.Rectangle;
 // ReSharper disable IdentifierTypo
 
@@ -29,6 +32,29 @@ namespace NNHelper
                 Convert.ToInt32(Settings.HeadWidth * nearestEnemy.Width),
                 Convert.ToInt32(Settings.HeadHeight * nearestEnemy.Height));
             return nearestEnemyHead;
+        }
+
+        public static T Clone<T>(T source)
+        {
+            if (!typeof(T).IsSerializable)
+            {
+                throw new ArgumentException("The type must be serializable.", "source");
+            }
+
+            // Don't serialize a null object, simply return the default for that object
+            if (Object.ReferenceEquals(source, null))
+            {
+                return default(T);
+            }
+
+            IFormatter formatter = new BinaryFormatter();
+            Stream stream = new MemoryStream();
+            using (stream)
+            {
+                formatter.Serialize(stream, source);
+                stream.Seek(0, SeekOrigin.Begin);
+                return (T) formatter.Deserialize(stream);
+            }
         }
 
         public static bool Equals(Bitmap bmp1, Bitmap bmp2)
@@ -61,6 +87,41 @@ namespace NNHelper
             bmp1.UnlockBits(bmpData1);
             bmp2.UnlockBits(bmpData2);
             return equals;
+        }
+
+        public static bool Equals(Bitmap bmp1, Bitmap bmp2, int maxDifferentPixels)
+        {
+            var pixels = 0;
+            System.Drawing.Rectangle rect = new System.Drawing.Rectangle(0, 0, bmp1.Width, bmp1.Height);
+            BitmapData bmpData1 = bmp1.LockBits(rect, ImageLockMode.ReadOnly, bmp1.PixelFormat);
+            BitmapData bmpData2 = bmp2.LockBits(rect, ImageLockMode.ReadOnly, bmp2.PixelFormat);
+            unsafe
+            {
+                byte* ptr1 = (byte*)bmpData1.Scan0.ToPointer();
+                byte* ptr2 = (byte*)bmpData2.Scan0.ToPointer();
+                int width = rect.Width * 3; // for 24bpp pixel data
+                for (int y = 0; pixels < maxDifferentPixels && y < rect.Height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        if (*ptr1 != *ptr2)
+                        {
+                            pixels++;
+                            if (pixels >= maxDifferentPixels)
+                            {
+                                return false;
+                            }
+                        }
+                        ptr1++;
+                        ptr2++;
+                    }
+                    ptr1 += bmpData1.Stride - width;
+                    ptr2 += bmpData2.Stride - width;
+                }
+            }
+            bmp1.UnlockBits(bmpData1);
+            bmp2.UnlockBits(bmpData2);
+            return pixels < maxDifferentPixels;
         }
     }
 
