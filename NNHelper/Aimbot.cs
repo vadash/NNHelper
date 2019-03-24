@@ -15,7 +15,7 @@ namespace NNHelper
     public class Aimbot
     {
         private static long _lastTick = DateTime.Now.Ticks;
-        private Point cursorPosition;
+        //private Point cursorPosition;
         private readonly DrawHelper dh;
         private bool aimEnabled = true;
         private readonly NeuralNet nn;
@@ -33,9 +33,9 @@ namespace NNHelper
         private const int TRACK_MAX_SKIPPED_FRAMES = 2;
 
         //debug
-        private readonly Stopwatch debugPerformanceStopwatch = new Stopwatch();
-        private int debugTotalTimesRun = 0;
-        private int debugFoundTarget = 0;
+        //private readonly Stopwatch debugPerformanceStopwatch = new Stopwatch();
+        //private int debugTotalTimesRun = 0;
+        //private int debugFoundTarget = 0;
 
         public Aimbot(Settings settings, NeuralNet neuralNet)
         {
@@ -50,27 +50,28 @@ namespace NNHelper
             var gc = new GController(s);
             StartReadKeysThread();
             SynchronizeToGameFps(gc, true);
+            var oldFrame = gc.ScreenCapture();
             mainCycleWatch.Start();
             syncFpsWatch.Start();
             while (true)
             {
-                if (mainCycleWatch.ElapsedMilliseconds > 10000)
-                {
-                    var a = (float)syncFpsWatch.ElapsedMilliseconds / syncFramesProcessed;
-                }
+                //if (mainCycleWatch.ElapsedMilliseconds > 10000)
+                //{
+                //    var a = (float)syncFpsWatch.ElapsedMilliseconds / syncFramesProcessed;
+                //}
                 if (aimEnabled)
                 {
-                    cursorPosition = Cursor.Position;
-                    if (IsNewFrameReady()) // update enemy info
+                    //cursorPosition = Cursor.Position;
+                    if (CaptureNewFrame(gc, ref oldFrame, out var newFrame)) // update enemy info
                     {
                         syncFramesProcessed++;
-                        var bitmap = gc.ScreenCapture();
+                        //Bitmap bitmap = gc.ScreenCapture();
                         float curDx;
                         float curDy;
                         YoloItem currentEnemy;
                         if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES) // do tracking
                         {
-                            currentEnemy = nn.Track(bitmap);
+                            currentEnemy = nn.Track(newFrame);
                             if (currentEnemy == null)
                             {
                                 trackSkippedFrames++;
@@ -81,7 +82,7 @@ namespace NNHelper
                         else // using regular search
                         {
                             var confidence = IsShooting() ? 0.2f : 0.4f;
-                            var enemies = nn.GetItems(bitmap, confidence);
+                            var enemies = nn.GetItems(newFrame, confidence);
                             if (enemies == null || !enemies.Any())
                             {
                                 dh.DrawDisabled();
@@ -131,7 +132,7 @@ namespace NNHelper
             float smooth;
             if (dist < 80) smooth = 1f;
             else if (dist < 160) smooth = 0.5f;
-            else smooth = 1/3f;
+            else smooth = 0.33f;
             return smooth;
         }
 
@@ -142,6 +143,14 @@ namespace NNHelper
             return (int)Math.Ceiling(syncFramesProcessed * (1000f / 60f) - syncFpsWatch.ElapsedMilliseconds);
         }
 
+        private static bool CaptureNewFrame(GController gc, ref Bitmap oldFrame, out Bitmap newFrame)
+        {
+            while (Util.Equals(oldFrame, newFrame = gc.ScreenCapture()))
+            {
+            }
+            oldFrame = newFrame;
+            return true;
+        }
         private bool IsNewFrameReady()
         {
             return TimeToNextFrame() <= 0;

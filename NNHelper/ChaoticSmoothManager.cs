@@ -57,10 +57,8 @@ namespace NNHelper
                 var (a1, a2, _) = lastMovementList[index];
                 var (b1, b2, _) = lastMovementList[index + 1];
                 var cosAngle = (a1 * b1 + a2 * b2) / (Math.Sqrt(a1 * a1 + a2 * a2) * Math.Sqrt(b1 * b1 + b2 * b2));
-                if (cosAngle >= 1f && cosAngle <= 1f + TOLERANCE) cosAngle = 1f;
-                if (cosAngle <= -1f && cosAngle >= -1f - TOLERANCE) cosAngle = -1f;
+                if (Math.Abs(cosAngle) >= 1f - TOLERANCE && Math.Abs(cosAngle) <= 1f + TOLERANCE) cosAngle = Math.Sign(cosAngle);
                 var angle = (float)Math.Acos(cosAngle);
-                if (float.IsNaN(angle)) angle = float.MaxValue;
                 averageAngle += angle;
             }
             averageAngle *= 180f / (float)Math.PI;
