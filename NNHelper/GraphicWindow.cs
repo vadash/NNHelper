@@ -19,12 +19,12 @@ namespace NNHelper
             graphics = new GraphicsEx
             {
                 MeasureFPS = false,
-                Height = window.Height,
                 PerPrimitiveAntiAliasing = false,
                 TextAntiAliasing = false,
                 UseMultiThreadedFactories = false,
                 VSync = false,
                 Width = window.Width,
+                Height = window.Height,
                 WindowHandle = window.Handle
             };
             graphics.Setup();

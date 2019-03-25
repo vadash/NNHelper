@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Windows.Forms;
 using Alturos.Yolo.Model;
 using Point = System.Drawing.Point;
 using Rectangle = GameOverlay.Drawing.Rectangle;
@@ -16,7 +17,7 @@ namespace NNHelper
             mainWnd = new GraphicWindow(settings.SizeX, settings.SizeY);
         }
 
-        public void DrawPlaying(Settings settings, YoloItem enemy, bool firemode)
+        public void DrawPlaying(YoloItem enemy, bool firemode)
         {
             mainWnd.window.X = 1920/2 - s.SizeX / 2;
             mainWnd.window.Y = 1080/2 - s.SizeY / 2;

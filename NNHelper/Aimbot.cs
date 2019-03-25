@@ -14,7 +14,7 @@ namespace NNHelper
 {
     public class Aimbot
     {
-        private static long _lastTick = DateTime.Now.Ticks;
+        private long lastTick = DateTime.Now.Ticks;
         private Point cursorPosition;
         private readonly DrawHelper dh;
         private bool aimEnabled = true;
@@ -22,6 +22,7 @@ namespace NNHelper
         private readonly Settings s;
         private readonly Stopwatch mainCycleWatch = new Stopwatch();
         private readonly ChaoticSmoothManager chaoticSmoothManager = new ChaoticSmoothManager();
+        private const int fps = 75;
 
         // sync fps
         private readonly Stopwatch syncFpsWatch = new Stopwatch();
@@ -31,6 +32,13 @@ namespace NNHelper
         private bool trackEnabled;
         private int trackSkippedFrames;
         private const int TRACK_MAX_SKIPPED_FRAMES = 2;
+
+        //draw shit
+        private YoloItem currentTarget;
+        private readonly ExponentialMovingAverageIndicator targetX = new ExponentialMovingAverageIndicator(2);
+        private readonly ExponentialMovingAverageIndicator targetY = new ExponentialMovingAverageIndicator(2);
+        private readonly ExponentialMovingAverageIndicator targetWidth = new ExponentialMovingAverageIndicator(2);
+        private readonly ExponentialMovingAverageIndicator targetHeight = new ExponentialMovingAverageIndicator(2);
 
         //debug
         //private readonly Stopwatch debugPerformanceStopwatch = new Stopwatch();
@@ -50,6 +58,7 @@ namespace NNHelper
             Console.WriteLine("PepeHands please work");
             var gc = new GController(s);
             StartReadKeysThread();
+            StartRenderThread();
             SynchronizeToGameFps(gc, true);
             mainCycleWatch.Start();
             syncFpsWatch.Start();
@@ -68,16 +77,16 @@ namespace NNHelper
                         var newFrame = gc.ScreenCapture();
                         float curDx;
                         float curDy;
-                        YoloItem currentEnemy;
                         if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES) // do tracking
                         {
-                            currentEnemy = nn.Track(newFrame);
-                            if (currentEnemy == null)
+                            currentTarget = nn.Track(newFrame);
+                            UpdateTargetCoordinates();
+                            if (currentTarget == null)
                             {
                                 trackSkippedFrames++;
                                 continue;
                             }
-                            (curDx, curDy) = GetAimPoint(currentEnemy, cursorPosition);
+                            (curDx, curDy) = GetAimPoint(currentTarget, cursorPosition);
                         }
                         else // using regular search
                         {
@@ -85,14 +94,15 @@ namespace NNHelper
                             var enemies = nn.GetItems(newFrame, confidence);
                             if (enemies == null || !enemies.Any())
                             {
-                                dh.DrawDisabled();
+                                currentTarget = null;
                                 continue;
                             }
                             trackEnabled = true;
                             trackSkippedFrames = 0;
-                            currentEnemy = GetClosestEnemy(enemies);
-                            nn.SetTrackingPoint(currentEnemy);
-                            (curDx, curDy) = GetAimPoint(currentEnemy, cursorPosition);
+                            currentTarget = GetClosestEnemy(enemies);
+                            UpdateTargetCoordinates();
+                            nn.SetTrackingPoint(currentTarget);
+                            (curDx, curDy) = GetAimPoint(currentTarget, cursorPosition);
                         }
                         if (IsAiming())
                         {
@@ -102,7 +112,6 @@ namespace NNHelper
                             var (xDelta, yDelta) = ApplySmoothScale(curDx, curDy, Math.Min(distanceSmooth, 1f));
                             MoveMouse(xDelta, yDelta);
                         }
-                        dh.DrawPlaying(s, currentEnemy, IsAiming());
                     }
                     else // no need to update enemy info
                     {
@@ -112,10 +121,22 @@ namespace NNHelper
                 }
                 else
                 {
-                    dh.DrawDisabled();
                     Thread.Sleep(250);
                 }
             }
+        }
+
+        private void UpdateTargetCoordinates()
+        {
+            if (currentTarget == null) return;
+            targetX.AddDataPoint(currentTarget.X);
+            targetY.AddDataPoint(currentTarget.Y);
+            targetWidth.AddDataPoint(currentTarget.Width);
+            targetHeight.AddDataPoint(currentTarget.Height);
+            currentTarget.X = (int) targetX.Average;
+            currentTarget.Y = (int) targetY.Average;
+            currentTarget.Width = (int) targetWidth.Average;
+            currentTarget.Height = (int) targetHeight.Average;
         }
 
         private (int, int) ApplySmoothScale(float curDx, float curDy, float smooth)
@@ -158,7 +179,7 @@ namespace NNHelper
         } 
         #endregion
 
-        private static void StartReadKeysThread()
+        private void StartReadKeysThread()
         {
             Thread.Sleep(1000);
             new Thread(() =>
@@ -171,9 +192,26 @@ namespace NNHelper
                                     User32.IsKeyPushedDown(Keys.XButton1);
                     if (isKeyDown)
                     {
-                        _lastTick = DateTime.Now.Ticks;
+                        lastTick = DateTime.Now.Ticks;
                     }
                     Thread.Sleep(250);
+                }
+            }).Start();
+        }
+
+        private void StartRenderThread()
+        {
+            Thread.Sleep(1000);
+            new Thread(() =>
+            {
+                Thread.CurrentThread.IsBackground = true;
+                while (true)
+                {
+                    if (currentTarget == null)
+                        dh.DrawDisabled();
+                    else
+                        dh.DrawPlaying(currentTarget, IsAiming());
+                    Thread.Sleep((int)(1000f/fps));
                 }
             }).Start();
         }
@@ -222,7 +260,7 @@ namespace NNHelper
 
         public bool IsAiming()
         {
-            return DateTime.Now.Ticks < _lastTick + 20000000;
+            return DateTime.Now.Ticks < lastTick + 20000000;
         }
 
         private void DontMoveInZone(Rectangle zone, ref float curDx, ref float curDy)
