@@ -22,7 +22,7 @@ namespace NNHelper
         private readonly Settings s;
         private readonly Stopwatch mainCycleWatch = new Stopwatch();
         private readonly ChaoticSmoothManager chaoticSmoothManager = new ChaoticSmoothManager();
-        private const int fps = 75;
+        private const int fps = 60;
 
         // sync fps
         private readonly Stopwatch syncFpsWatch = new Stopwatch();
@@ -133,8 +133,8 @@ namespace NNHelper
             var dist = Math.Sqrt(dist2);
             float smooth;
             if (dist < 40) smooth = 0.5f;
-            else if (dist < 160) smooth = 0.33f;
-            else smooth = 0.25f;
+            else if (dist < 80f) smooth = 0.4f;
+            else smooth = 0.33f;
             return smooth;
         }
 
@@ -142,7 +142,7 @@ namespace NNHelper
         #region Next frame math
         private int TimeToNextFrame()
         {
-            return (int)Math.Ceiling(syncFramesProcessed * (1000f / 75f) - syncFpsWatch.ElapsedMilliseconds);
+            return (int)Math.Ceiling(syncFramesProcessed * (1000f / fps) - syncFpsWatch.ElapsedMilliseconds);
         }
 
         private bool IsNewFrameReady()
