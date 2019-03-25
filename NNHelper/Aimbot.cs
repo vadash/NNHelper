@@ -35,10 +35,6 @@ namespace NNHelper
 
         //draw shit
         private YoloItem currentTarget;
-        private readonly ExponentialMovingAverageIndicator targetX = new ExponentialMovingAverageIndicator(2);
-        private readonly ExponentialMovingAverageIndicator targetY = new ExponentialMovingAverageIndicator(2);
-        private readonly ExponentialMovingAverageIndicator targetWidth = new ExponentialMovingAverageIndicator(2);
-        private readonly ExponentialMovingAverageIndicator targetHeight = new ExponentialMovingAverageIndicator(2);
 
         //debug
         //private readonly Stopwatch debugPerformanceStopwatch = new Stopwatch();
@@ -80,7 +76,6 @@ namespace NNHelper
                         if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES) // do tracking
                         {
                             currentTarget = nn.Track(newFrame);
-                            UpdateTargetCoordinates();
                             if (currentTarget == null)
                             {
                                 trackSkippedFrames++;
@@ -100,7 +95,6 @@ namespace NNHelper
                             trackEnabled = true;
                             trackSkippedFrames = 0;
                             currentTarget = GetClosestEnemy(enemies);
-                            UpdateTargetCoordinates();
                             nn.SetTrackingPoint(currentTarget);
                             (curDx, curDy) = GetAimPoint(currentTarget, cursorPosition);
                         }
@@ -124,19 +118,6 @@ namespace NNHelper
                     Thread.Sleep(250);
                 }
             }
-        }
-
-        private void UpdateTargetCoordinates()
-        {
-            if (currentTarget == null) return;
-            targetX.AddDataPoint(currentTarget.X);
-            targetY.AddDataPoint(currentTarget.Y);
-            targetWidth.AddDataPoint(currentTarget.Width);
-            targetHeight.AddDataPoint(currentTarget.Height);
-            currentTarget.X = (int) targetX.Average;
-            currentTarget.Y = (int) targetY.Average;
-            currentTarget.Width = (int) targetWidth.Average;
-            currentTarget.Height = (int) targetHeight.Average;
         }
 
         private (int, int) ApplySmoothScale(float curDx, float curDy, float smooth)
