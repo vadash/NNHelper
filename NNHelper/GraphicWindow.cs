@@ -21,8 +21,8 @@ namespace NNHelper
                 MeasureFPS = false,
                 PerPrimitiveAntiAliasing = false,
                 TextAntiAliasing = false,
-                UseMultiThreadedFactories = false,
-                VSync = false,
+                UseMultiThreadedFactories = true,
+                VSync = true,
                 Width = window.Width,
                 Height = window.Height,
                 WindowHandle = window.Handle

@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Windows.Forms;
-using Alturos.Yolo.Model;
-using Point = System.Drawing.Point;
+﻿using Alturos.Yolo.Model;
 using Rectangle = GameOverlay.Drawing.Rectangle;
 
 namespace NNHelper
