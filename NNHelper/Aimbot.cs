@@ -81,7 +81,7 @@ namespace NNHelper
                                 trackSkippedFrames++;
                                 continue;
                             }
-                            (curDx, curDy) = GetAimPoint(currentTarget, cursorPosition);
+                            (curDx, curDy) = GetAimPoint(currentTarget);
                         }
                         else // using regular search
                         {
@@ -89,22 +89,29 @@ namespace NNHelper
                             var enemies = nn.GetItems(newFrame, confidence);
                             if (enemies == null || !enemies.Any())
                             {
-                                currentTarget = null;
-                                continue;
+                                if (trackSkippedFrames > TRACK_MAX_SKIPPED_FRAMES)
+                                {
+                                    currentTarget = null;
+                                    continue;
+                                }
                             }
-                            trackEnabled = true;
-                            trackSkippedFrames = 0;
-                            currentTarget = GetClosestEnemy(enemies);
-                            nn.SetTrackingPoint(currentTarget);
-                            (curDx, curDy) = GetAimPoint(currentTarget, cursorPosition);
+                            else
+                            {
+                                trackEnabled = true;
+                                trackSkippedFrames = 0;
+                                currentTarget = GetClosestEnemy(enemies);
+                                nn.SetTrackingPoint(currentTarget);
+                            }
+                            (curDx, curDy) = GetAimPoint(currentTarget);
                         }
                         if (IsAiming())
                         {
                             chaoticSmoothManager.AddPoint(curDx, curDy);
                             //var chaosSmooth = chaoticSmoothManager.GetSmooth();
-                            var distanceSmooth = CalculateDistanceSmoothSimple(curDx, curDy);
-                            var (xDelta, yDelta) = ApplySmoothScale(curDx, curDy, Math.Min(distanceSmooth, 1f));
+                            var (xDelta, yDelta) = ApplySmoothScale(curDx, curDy, CalculateDistanceSmoothSimple(curDx, curDy));
                             MoveMouse(xDelta, yDelta);
+                            currentTarget.X -= xDelta / 2;
+                            currentTarget.Y -= yDelta / 2;
                         }
                     }
                     else // no need to update enemy info
@@ -132,8 +139,8 @@ namespace NNHelper
             var dist2 = curDx * curDx + curDy * curDy;
             var dist = Math.Sqrt(dist2);
             float smooth;
-            if (dist < 40) smooth = 0.5f;
-            else if (dist < 80f) smooth = 0.4f;
+            if (dist < 80) smooth = 1f;
+            else if (dist < 160f) smooth = 0.5f;
             else smooth = 0.33f;
             return smooth;
         }
@@ -197,8 +204,12 @@ namespace NNHelper
             }).Start();
         }
 
-        private (float curDx, float curDy) GetAimPoint(YoloItem enemy, Point cursorPosition)
+        private (float curDx, float curDy) GetAimPoint(YoloItem enemy)
         {
+            if (enemy == null)
+            {
+                return (0, 0);
+            }
             var nearestEnemyHead = Util.GetEnemyHead(enemy);
             var nearestEnemyBody = Util.GetEnemyBody(enemy);
             if (nearestEnemyHead.Height > Settings.MinHeadSize) // aim to neck
