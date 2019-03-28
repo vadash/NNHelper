@@ -38,7 +38,7 @@ namespace NNHelper
         private YoloItem targetRendered; // using
         private readonly ExponentialMovingAverageIndicator targetSpeedX = new ExponentialMovingAverageIndicator(30);
         private readonly ExponentialMovingAverageIndicator targetSpeedY = new ExponentialMovingAverageIndicator(30);
-        private long lastSpeedMeasured = 0;
+        private int nextSleep = 1;
         private bool bTargetUpdated; // true - need to update targetRendered (copy value from targetDetected)
 
         //debug
@@ -85,8 +85,8 @@ namespace NNHelper
                             bTargetUpdated = true;
                             TargetMutex.ReleaseMutex();
                         }
-                        //if (true)
-                        if (IsNewFrameReady()) // update enemy info
+                        if (true)
+                        //if (IsNewFrameReady()) // update enemy info
                         {
                             syncFramesProcessed++;
                             var newFrame = gc.ScreenCapture();
@@ -186,7 +186,7 @@ namespace NNHelper
                 Thread.CurrentThread.IsBackground = true;
                 while (true)
                 {
-                    Thread.Sleep((int)(1000f/200f));
+                    Thread.Sleep(2);
                     if (bTargetUpdated)
                     {
                         TargetMutex.WaitOne();
@@ -200,8 +200,7 @@ namespace NNHelper
                         continue;
                     }
                     var (curDx, curDy) = GetAimPoint(targetRendered);
-                    var distanceSmooth = CalculateDistanceSmoothSimple(curDx, curDy);
-                    var (xDelta, yDelta) = ApplySmoothScale(curDx, curDy, distanceSmooth);
+                    var (xDelta, yDelta) = ApplyExperimentalSmooth(curDx, curDy);
                     targetRendered.X -= (int)(xDelta / (5f / gameSense));
                     targetRendered.Y -= (int)(yDelta / (5f / gameSense));
                     MoveMouse(xDelta, yDelta);
@@ -209,24 +208,59 @@ namespace NNHelper
             }).Start();
         }
 
-        private (int, int) ApplySmoothScale(float curDx, float curDy, float smooth)
-        {
-            if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
-                return (Convert.ToInt32(gameSense * curDx * smooth), Convert.ToInt32(gameSense * curDy * smooth));
-            return (0, 0);
-        }
-
-        private static float CalculateDistanceSmoothSimple(float curDx, float curDy)
+        private (int, int) ApplyExperimentalSmooth(float curDx, float curDy)
         {
             var dist2 = curDx * curDx + curDy * curDy;
-            var dist = Math.Sqrt(dist2);
-            float smooth;
-            if (dist < 40) smooth = 1f/7f;
-            else if (dist < 80) smooth = 1f/14f;
-            else if (dist < 160f) smooth = 1f/28f;
-            else smooth = 1f/56f;
-            return smooth;
+            int k;
+            nextSleep = 2;
+            if (dist2 < 20 * 20)
+            {
+                k = 1;
+                nextSleep = 1;
+            }
+            else if (dist2 < 40 * 40)
+            {
+                k = 2;
+                nextSleep = 1;
+            }
+            else if (dist2 < 80 * 80)
+            {
+                k = 4;
+                nextSleep = 1;
+            }
+            else if (dist2 < 160 * 160)
+            {
+                k = 8;
+                nextSleep = 1;
+            }
+            else
+            {
+                k = 8;
+                nextSleep = 1;
+            }
+            var xDelta = k * Math.Sign(curDx);
+            var yDelta = k * Math.Sign(curDy);
+            return (xDelta, yDelta);
         }
+
+        //private (int, int) ApplySmoothScale(float curDx, float curDy, float smooth)
+        //{
+        //    if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
+        //        return (Convert.ToInt32(gameSense * curDx * smooth), Convert.ToInt32(gameSense * curDy * smooth));
+        //    return (0, 0);
+        //}
+
+        //private static float CalculateDistanceSmoothSimple(float curDx, float curDy)
+        //{
+        //    var dist2 = curDx * curDx + curDy * curDy;
+        //    var dist = Math.Sqrt(dist2);
+        //    float smooth;
+        //    if (dist < 40) smooth = 1f/4f;
+        //    else if (dist < 80) smooth = 1f/12f;
+        //    else if (dist < 160f) smooth = 1f/33f;
+        //    else smooth = 1f/100f;
+        //    return 1f/10f;
+        //}
 
 
         #region Next frame math
@@ -299,7 +333,7 @@ namespace NNHelper
             {
                 var curDx = nearestEnemyHead.Left + nearestEnemyHead.Width / 2f - s.SizeX / 2f;
                 var curDy = nearestEnemyHead.Top + nearestEnemyHead.Height - s.SizeY / 2f;
-                IfInsideZone1SlowlyMoveToZone2(ref curDx, ref curDy, nearestEnemyBody, nearestEnemyHead);
+                //IfInsideZone1SlowlyMoveToZone2(ref curDx, ref curDy, nearestEnemyBody, nearestEnemyHead);
                 DontMoveInZone(nearestEnemyHead, ref curDx, ref curDy);
                 return (curDx, curDy);
             }
@@ -307,7 +341,7 @@ namespace NNHelper
             {
                 var curDx = nearestEnemyBody.Left + nearestEnemyBody.Width / 2f - s.SizeX / 2f;
                 var curDy = nearestEnemyBody.Top + nearestEnemyBody.Height / 2f - s.SizeY / 2f;
-                IfInsideZone1SlowlyMoveToZone2(ref curDx, ref curDy, nearestEnemyBody, nearestEnemyHead);
+                //IfInsideZone1SlowlyMoveToZone2(ref curDx, ref curDy, nearestEnemyBody, nearestEnemyHead);
                 DontMoveInZone(nearestEnemyBody, ref curDx, ref curDy);
                 return (curDx, curDy);
             }
