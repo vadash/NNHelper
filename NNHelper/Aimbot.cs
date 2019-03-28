@@ -21,7 +21,9 @@ namespace NNHelper
         private readonly Stopwatch mainCycleWatch = new Stopwatch();
         //private readonly ChaoticSmoothManager chaoticSmoothManager = new ChaoticSmoothManager();
         private const int fps = 60;
-        private const float gameSense = 2.5f; // 2.5f here and 1.0 in game
+        private const float gameSense = 2.5f;
+        // 2.5f here and 1.0 in game +m_rawinput 0
+        // 2.5f here and 1.0 in game +m_rawinput 1
 
         // sync fps
         private readonly Stopwatch syncFpsWatch = new Stopwatch();
@@ -85,8 +87,8 @@ namespace NNHelper
                             bTargetUpdated = true;
                             TargetMutex.ReleaseMutex();
                         }
-                        if (true)
-                        //if (IsNewFrameReady()) // update enemy info
+                        //if (true)
+                        if (IsNewFrameReady()) // update enemy info
                         {
                             syncFramesProcessed++;
                             var newFrame = gc.ScreenCapture();
@@ -186,7 +188,7 @@ namespace NNHelper
                 Thread.CurrentThread.IsBackground = true;
                 while (true)
                 {
-                    Thread.Sleep(2);
+                    Thread.Sleep(nextSleep);
                     if (bTargetUpdated)
                     {
                         TargetMutex.WaitOne();
@@ -201,9 +203,9 @@ namespace NNHelper
                     }
                     var (curDx, curDy) = GetAimPoint(targetRendered);
                     var (xDelta, yDelta) = ApplyExperimentalSmooth(curDx, curDy);
-                    targetRendered.X -= (int)(xDelta / (5f / gameSense));
-                    targetRendered.Y -= (int)(yDelta / (5f / gameSense));
                     MoveMouse(xDelta, yDelta);
+                    targetRendered.X -= Convert.ToInt32(xDelta / 2f);
+                    targetRendered.Y -= Convert.ToInt32(yDelta / 2f);
                 }
             }).Start();
         }
@@ -212,31 +214,25 @@ namespace NNHelper
         {
             var dist2 = curDx * curDx + curDy * curDy;
             int k;
-            nextSleep = 2;
             if (dist2 < 20 * 20)
             {
-                k = 1;
-                nextSleep = 1;
+                k = 2;
+                nextSleep = 2;
             }
             else if (dist2 < 40 * 40)
             {
-                k = 2;
-                nextSleep = 1;
+                k = 4;
+                nextSleep = 2;
             }
             else if (dist2 < 80 * 80)
             {
-                k = 4;
-                nextSleep = 1;
-            }
-            else if (dist2 < 160 * 160)
-            {
                 k = 8;
-                nextSleep = 1;
+                nextSleep = 3;
             }
             else
             {
-                k = 8;
-                nextSleep = 1;
+                k = 16;
+                nextSleep = 4;
             }
             var xDelta = k * Math.Sign(curDx);
             var yDelta = k * Math.Sign(curDy);
@@ -286,7 +282,6 @@ namespace NNHelper
 
         private void StartReadKeysThread()
         {
-            Thread.Sleep(1000);
             new Thread(() =>
             {
                 Thread.CurrentThread.IsBackground = true;
@@ -306,7 +301,6 @@ namespace NNHelper
 
         private void StartRenderThread()
         {
-            Thread.Sleep(1000);
             new Thread(() =>
             {
                 Thread.CurrentThread.IsBackground = true;
