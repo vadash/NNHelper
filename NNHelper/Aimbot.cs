@@ -34,12 +34,12 @@ namespace NNHelper
         private const int MAX_FRAMES_TO_RESET_TARGET = (int)(60f/2f);
 
         private static readonly Mutex TargetMutex = new Mutex();
-        private YoloItem targetDetected;
-        private YoloItem targetRendered;
+        private YoloItem targetDetected; // detector will wright here
+        private YoloItem targetRendered; // using
         private readonly ExponentialMovingAverageIndicator targetSpeedX = new ExponentialMovingAverageIndicator(30);
         private readonly ExponentialMovingAverageIndicator targetSpeedY = new ExponentialMovingAverageIndicator(30);
         private long lastSpeedMeasured = 0;
-        private bool bTargetUpdated;
+        private bool bTargetUpdated; // true - need to update targetRendered (copy value from targetDetected)
 
         //debug
         private readonly Stopwatch debugPerformanceStopwatch = new Stopwatch();
@@ -78,7 +78,7 @@ namespace NNHelper
                 {
                     if (aimEnabled)
                     {
-                        if (trackSkippedFrames > MAX_FRAMES_TO_RESET_TARGET)
+                        if (trackSkippedFrames > MAX_FRAMES_TO_RESET_TARGET && targetDetected != null)
                         {
                             TargetMutex.WaitOne();
                             targetDetected = null;
@@ -89,7 +89,8 @@ namespace NNHelper
                         {
                             syncFramesProcessed++;
                             var newFrame = gc.ScreenCapture();
-                            if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES) // do tracking
+                            // do tracking
+                            if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES)
                             {
                                 var tmp = nn.Track(newFrame);
                                 if (tmp == null)
@@ -101,9 +102,11 @@ namespace NNHelper
                                 {
                                     nn.SetTrackingPoint(tmp);
                                     NewTargetFound(tmp);
+                                    UpdateSpeed();
                                 }
                             }
-                            else // using regular search
+                            // using regular search
+                            else
                             {
                                 var confidence = IsAiming() ? 0.25f : 0.4f;
                                 var enemies = nn.GetItems(newFrame, confidence);
@@ -118,6 +121,7 @@ namespace NNHelper
                                     trackSkippedFrames = 0;
                                     var tmp = GetClosestEnemy(enemies);
                                     NewTargetFound(tmp);
+                                    UpdateSpeed();
                                 }
                             }
                         }
@@ -143,8 +147,8 @@ namespace NNHelper
                 return;
             }
             TargetMutex.WaitOne();
-            targetDetected.X -= (int)targetSpeedX.Average;
-            targetDetected.Y -= (int)targetSpeedY.Average;
+            targetDetected.X += (int)targetSpeedX.Average;
+            targetDetected.Y += (int)targetSpeedY.Average;
             bTargetUpdated = true;
             TargetMutex.ReleaseMutex();
         }
@@ -153,7 +157,6 @@ namespace NNHelper
         {
             TargetMutex.WaitOne();
             targetDetected = tmp;
-            UpdateSpeed();
             bTargetUpdated = true;
             TargetMutex.ReleaseMutex();
         }
@@ -217,9 +220,9 @@ namespace NNHelper
             var dist = Math.Sqrt(dist2);
             float smooth;
             if (dist < 40) smooth = 1f/2f;
-            else if (dist < 80) smooth = 1f/4f;
-            else if (dist < 160f) smooth = 1f/6f;
-            else smooth = 1f/8f;
+            else if (dist < 80) smooth = 1f/3f;
+            else if (dist < 160f) smooth = 1f/4f;
+            else smooth = 1f/5f;
             return smooth;
         }
 
@@ -273,10 +276,10 @@ namespace NNHelper
                 Thread.CurrentThread.IsBackground = true;
                 while (true)
                 {
-                    if (targetDetected == null)
+                    if (targetRendered == null)
                         dh.DrawDisabled();
                     else
-                        dh.DrawPlaying(targetDetected, IsAiming());
+                        dh.DrawPlaying(targetRendered, IsAiming());
                     Thread.Sleep((int)(1000f/fps));
                 }
             }).Start();

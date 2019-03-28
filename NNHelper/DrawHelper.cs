@@ -14,32 +14,14 @@ namespace NNHelper
             mainWnd = new GraphicWindow(settings.SizeX, settings.SizeY);
         }
 
-        public void DrawPlaying(YoloItem enemy, bool firemode)
+        private void DrawItem(YoloItem enemy)
         {
-            mainWnd.window.X = 1920/2 - s.SizeX / 2;
-            mainWnd.window.Y = 1080/2 - s.SizeY / 2;
-            mainWnd.graphics.BeginScene();
-            mainWnd.graphics.ClearScene();
-            // draw area
-            //mainWnd.graphics.DrawRectangle(mainWnd.graphics.blueBrush, 0, 0, s.SizeX, s.SizeY, 2);
-            // draw crossfire
-            mainWnd.graphics.FillRectangle(firemode ? mainWnd.graphics.redBrush : mainWnd.graphics.blueBrush,
-                Rectangle.Create(s.SizeX / 2 - 2, s.SizeY / 2 - 2, 4, 4));
-            //mainWnd.graphics.WriteText(
-            //    $"FPS {mainWnd.graphics.FPS}");
-            // draw targets
-            DrawItem(enemy);
-            mainWnd.graphics.EndScene();
-        }
-
-        private void DrawItem(YoloItem item)
-        {
-            var head = Util.GetEnemyHead(item);
-            var body = Util.GetEnemyBody(item);
+            var head = Util.GetEnemyHead(enemy);
+            var body = Util.GetEnemyBody(enemy);
             mainWnd.graphics.DrawRectangle(mainWnd.graphics.redBrush, body, 2);
             if (head.Height >= Settings.MinHeadSize)
             {
-                mainWnd.graphics.DrawRectangle(mainWnd.graphics.blueBrush, head, 2);
+                mainWnd.graphics.DrawRectangle(mainWnd.graphics.redBrush, head, 2);
             }
         }
 
@@ -49,6 +31,24 @@ namespace NNHelper
             mainWnd.window.Y = 0;
             mainWnd.graphics.BeginScene();
             mainWnd.graphics.ClearScene();
+            mainWnd.graphics.EndScene();
+        }
+
+        public void DrawPlaying(YoloItem enemy, bool isAiming)
+        {
+            mainWnd.window.X = 1920 / 2 - s.SizeX / 2;
+            mainWnd.window.Y = 1080 / 2 - s.SizeY / 2;
+            mainWnd.graphics.BeginScene();
+            mainWnd.graphics.ClearScene();
+            // draw area
+            //mainWnd.graphics.DrawRectangle(mainWnd.graphics.blueBrush, 0, 0, s.SizeX, s.SizeY, 2);
+            // draw crossfire
+            mainWnd.graphics.FillRectangle(isAiming ? mainWnd.graphics.redBrush : mainWnd.graphics.blueBrush,
+                Rectangle.Create(s.SizeX / 2 - 2, s.SizeY / 2 - 2, 4, 4));
+            //mainWnd.graphics.WriteText(
+            //    $"FPS {mainWnd.graphics.FPS}");
+            // draw targets
+            DrawItem(enemy);
             mainWnd.graphics.EndScene();
         }
     }
