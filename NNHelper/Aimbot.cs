@@ -85,7 +85,8 @@ namespace NNHelper
                             bTargetUpdated = true;
                             TargetMutex.ReleaseMutex();
                         }
-                        if (IsNewFrameReady()) // update enemy info
+                        if (true)
+                        //if (IsNewFrameReady()) // update enemy info
                         {
                             syncFramesProcessed++;
                             var newFrame = gc.ScreenCapture();
@@ -96,7 +97,8 @@ namespace NNHelper
                                 if (tmp == null)
                                 {
                                     trackSkippedFrames++;
-                                    PredictTarget();
+                                    // testing
+                                    //PredictTarget();
                                 }
                                 else
                                 {
@@ -184,7 +186,7 @@ namespace NNHelper
                 Thread.CurrentThread.IsBackground = true;
                 while (true)
                 {
-                    Thread.Sleep((int)(1000f/fps));
+                    Thread.Sleep((int)(1000f/200f));
                     if (bTargetUpdated)
                     {
                         TargetMutex.WaitOne();
@@ -219,10 +221,10 @@ namespace NNHelper
             var dist2 = curDx * curDx + curDy * curDy;
             var dist = Math.Sqrt(dist2);
             float smooth;
-            if (dist < 40) smooth = 1f/2f;
-            else if (dist < 80) smooth = 1f/3f;
-            else if (dist < 160f) smooth = 1f/4f;
-            else smooth = 1f/5f;
+            if (dist < 40) smooth = 1f/7f;
+            else if (dist < 80) smooth = 1f/14f;
+            else if (dist < 160f) smooth = 1f/28f;
+            else smooth = 1f/56f;
             return smooth;
         }
 
@@ -258,7 +260,7 @@ namespace NNHelper
                 {
                     var isKeyDown = User32.IsKeyPushedDown(Keys.RButton) ||
                                     User32.IsKeyPushedDown(Keys.LButton) ||
-                                    User32.IsKeyPushedDown(Keys.XButton1);
+                                    User32.IsKeyPushedDown(Keys.XButton2);
                     if (isKeyDown)
                     {
                         lastTick = DateTime.Now.Ticks;
