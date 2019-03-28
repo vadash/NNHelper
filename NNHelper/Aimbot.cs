@@ -85,8 +85,8 @@ namespace NNHelper
                             bTargetUpdated = true;
                             TargetMutex.ReleaseMutex();
                         }
-                        if (true)
-                        //if (IsNewFrameReady()) // update enemy info
+                        //if (true)
+                        if (IsNewFrameReady()) // update enemy info
                         {
                             syncFramesProcessed++;
                             var newFrame = gc.ScreenCapture();

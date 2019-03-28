@@ -65,7 +65,7 @@ namespace NNHelper
 
         public static NeuralNet Create(string game)
         {
-            var nn = new NeuralNet {trainingNames = null, yoloWrapper = GetYolo(game), yoloTracking = new YoloTracking(GetYolo(game), 160) };
+            var nn = new NeuralNet {trainingNames = null, yoloWrapper = GetYolo(game), yoloTracking = new YoloTracking(GetYolo(game), 80) };
             nn.yoloTracking.SetTrackingObject(new Point(160, 160));
             return nn.yoloWrapper == null ? null : nn;
         }
