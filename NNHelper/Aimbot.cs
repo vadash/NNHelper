@@ -160,7 +160,7 @@ namespace NNHelper
 
         private void UpdateSpeed()
         {
-            if (targetRendered == null)
+            if (targetDetected == null || targetRendered == null)
             {
                 targetSpeedX.AddDataPoint(0);
                 targetSpeedY.AddDataPoint(0);
@@ -181,7 +181,7 @@ namespace NNHelper
                 Thread.CurrentThread.IsBackground = true;
                 while (true)
                 {
-                    Thread.Sleep((int)(1000f/fps/4f));
+                    Thread.Sleep((int)(1000f/fps));
                     if (bTargetUpdated)
                     {
                         TargetMutex.WaitOne();
@@ -216,10 +216,10 @@ namespace NNHelper
             var dist2 = curDx * curDx + curDy * curDy;
             var dist = Math.Sqrt(dist2);
             float smooth;
-            if (dist < 40) smooth = 1f/5f;
-            else if (dist < 80) smooth = 1f/10f;
-            else if (dist < 160f) smooth = 1f/15f;
-            else smooth = 1f/20f;
+            if (dist < 40) smooth = 1f/2f;
+            else if (dist < 80) smooth = 1f/4f;
+            else if (dist < 160f) smooth = 1f/6f;
+            else smooth = 1f/8f;
             return smooth;
         }
 
