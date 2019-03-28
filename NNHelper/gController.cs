@@ -23,7 +23,7 @@ namespace NNHelper
             width = s.SizeX;
             height = s.SizeY;
             phnd = Process.GetProcessesByName(s.Game).FirstOrDefault().MainWindowHandle;
-            ////set screencapture handles
+            //set screen capture handles
             hdcSrc = User32.GetWindowDC(phnd);
             windowRect = new User32.RECT();
             User32.GetWindowRect(phnd, ref windowRect);

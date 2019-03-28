@@ -19,9 +19,9 @@ namespace NNHelper
         private readonly NeuralNet nn;
         private readonly Settings s;
         private readonly Stopwatch mainCycleWatch = new Stopwatch();
-        private readonly ChaoticSmoothManager chaoticSmoothManager = new ChaoticSmoothManager();
+        //private readonly ChaoticSmoothManager chaoticSmoothManager = new ChaoticSmoothManager();
         private const int fps = 60;
-        private const float scale = 2.5f;
+        private const float gameSense = 2.5f; // 2.5f here and 1.0 in game
 
         // sync fps
         private readonly Stopwatch syncFpsWatch = new Stopwatch();
@@ -31,12 +31,18 @@ namespace NNHelper
         private bool trackEnabled;
         private int trackSkippedFrames;
         private const int TRACK_MAX_SKIPPED_FRAMES = 3;
+        private const int MAX_FRAMES_TO_RESET_TARGET = (int)(60f/2f);
 
         private static readonly Mutex TargetMutex = new Mutex();
-        private YoloItem currentTarget;
+        private YoloItem targetDetected;
+        private YoloItem targetRendered;
+        private readonly ExponentialMovingAverageIndicator targetSpeedX = new ExponentialMovingAverageIndicator(30);
+        private readonly ExponentialMovingAverageIndicator targetSpeedY = new ExponentialMovingAverageIndicator(30);
+        private long lastSpeedMeasured = 0;
+        private bool bTargetUpdated;
 
         //debug
-        //private readonly Stopwatch debugPerformanceStopwatch = new Stopwatch();
+        private readonly Stopwatch debugPerformanceStopwatch = new Stopwatch();
         //private int debugTotalTimesRun = 0;
         //private int debugFoundTarget = 0;
         //private static List<float> SyncList = new List<float>();
@@ -57,6 +63,7 @@ namespace NNHelper
             StartDetectorThread();
             mainCycleWatch.Start();
             syncFpsWatch.Start();
+            debugPerformanceStopwatch.Start();
             Application.Run();
         }
 
@@ -71,19 +78,29 @@ namespace NNHelper
                 {
                     if (aimEnabled)
                     {
+                        if (trackSkippedFrames > MAX_FRAMES_TO_RESET_TARGET)
+                        {
+                            TargetMutex.WaitOne();
+                            targetDetected = null;
+                            bTargetUpdated = true;
+                            TargetMutex.ReleaseMutex();
+                        }
                         if (IsNewFrameReady()) // update enemy info
-                                               //if (true)
                         {
                             syncFramesProcessed++;
                             var newFrame = gc.ScreenCapture();
                             if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES) // do tracking
                             {
-                                TargetMutex.WaitOne();
-                                currentTarget = nn.Track(newFrame);
-                                TargetMutex.ReleaseMutex();
-                                if (currentTarget == null)
+                                var tmp = nn.Track(newFrame);
+                                if (tmp == null)
                                 {
                                     trackSkippedFrames++;
+                                    PredictTarget();
+                                }
+                                else
+                                {
+                                    nn.SetTrackingPoint(tmp);
+                                    NewTargetFound(tmp);
                                 }
                             }
                             else // using regular search
@@ -92,22 +109,15 @@ namespace NNHelper
                                 var enemies = nn.GetItems(newFrame, confidence);
                                 if (enemies == null || !enemies.Any())
                                 {
-                                    if (trackSkippedFrames > TRACK_MAX_SKIPPED_FRAMES)
-                                    {
-                                        TargetMutex.WaitOne();
-                                        currentTarget = null;
-                                        TargetMutex.ReleaseMutex();
-                                    }
+                                    trackSkippedFrames++;
+                                    UpdateSpeed();
                                 }
                                 else
                                 {
                                     trackEnabled = true;
                                     trackSkippedFrames = 0;
                                     var tmp = GetClosestEnemy(enemies);
-                                    TargetMutex.WaitOne();
-                                    currentTarget = tmp;
-                                    TargetMutex.ReleaseMutex();
-                                    nn.SetTrackingPoint(currentTarget);
+                                    NewTargetFound(tmp);
                                 }
                             }
                         }
@@ -125,6 +135,45 @@ namespace NNHelper
             }).Start();
         }
 
+        private void PredictTarget()
+        {
+            if (Math.Abs(targetSpeedX.Average) < 1f &&
+                Math.Abs(targetSpeedY.Average) < 1f)
+            {
+                return;
+            }
+            TargetMutex.WaitOne();
+            targetDetected.X -= (int)targetSpeedX.Average;
+            targetDetected.Y -= (int)targetSpeedY.Average;
+            bTargetUpdated = true;
+            TargetMutex.ReleaseMutex();
+        }
+
+        private void NewTargetFound(YoloItem tmp)
+        {
+            TargetMutex.WaitOne();
+            targetDetected = tmp;
+            UpdateSpeed();
+            bTargetUpdated = true;
+            TargetMutex.ReleaseMutex();
+        }
+
+        private void UpdateSpeed()
+        {
+            if (targetRendered == null)
+            {
+                targetSpeedX.AddDataPoint(0);
+                targetSpeedY.AddDataPoint(0);
+            }
+            else
+            {
+                var dx = targetDetected.X - targetRendered.X;
+                targetSpeedX.AddDataPoint(dx);
+                var dy = targetDetected.Y - targetRendered.Y;
+                targetSpeedY.AddDataPoint(dy);
+            }
+        }
+
         private void StartMouseMoveThread()
         {
             new Thread(() =>
@@ -133,19 +182,23 @@ namespace NNHelper
                 while (true)
                 {
                     Thread.Sleep((int)(1000f/fps/4f));
-                    if (currentTarget == null || !IsAiming()) continue;
-                    TargetMutex.WaitOne();
-                    if (currentTarget == null)
+                    if (bTargetUpdated)
                     {
+                        TargetMutex.WaitOne();
+                        bTargetUpdated = false;
+                        targetRendered = targetDetected;
                         TargetMutex.ReleaseMutex();
+                    }
+                    if (!IsAiming()) continue;
+                    if (targetRendered == null)
+                    {
                         continue;
                     }
-                    var (curDx, curDy) = GetAimPoint(currentTarget);
+                    var (curDx, curDy) = GetAimPoint(targetRendered);
                     var distanceSmooth = CalculateDistanceSmoothSimple(curDx, curDy);
                     var (xDelta, yDelta) = ApplySmoothScale(curDx, curDy, distanceSmooth);
-                    currentTarget.X -= (int)(xDelta / scale);
-                    currentTarget.Y -= (int)(yDelta / scale);
-                    TargetMutex.ReleaseMutex();
+                    targetRendered.X -= (int)(xDelta / (5f / gameSense));
+                    targetRendered.Y -= (int)(yDelta / (5f / gameSense));
                     MoveMouse(xDelta, yDelta);
                 }
             }).Start();
@@ -154,7 +207,7 @@ namespace NNHelper
         private (int, int) ApplySmoothScale(float curDx, float curDy, float smooth)
         {
             if (curDx > -s.SizeX / 2f && curDx < s.SizeX / 2f && curDy > -s.SizeY / 2f && curDy < s.SizeY / 2f)
-                return (Convert.ToInt32(scale * curDx * smooth), Convert.ToInt32(scale * curDy * smooth));
+                return (Convert.ToInt32(gameSense * curDx * smooth), Convert.ToInt32(gameSense * curDy * smooth));
             return (0, 0);
         }
 
@@ -163,10 +216,10 @@ namespace NNHelper
             var dist2 = curDx * curDx + curDy * curDy;
             var dist = Math.Sqrt(dist2);
             float smooth;
-            if (dist < 40) smooth = 0.99f/3f;
-            else if (dist < 80) smooth = 0.99f/4f;
-            else if (dist < 160f) smooth = 0.99f/6f;
-            else smooth = 0.99f/10f;
+            if (dist < 40) smooth = 1f/5f;
+            else if (dist < 80) smooth = 1f/10f;
+            else if (dist < 160f) smooth = 1f/15f;
+            else smooth = 1f/20f;
             return smooth;
         }
 
@@ -220,10 +273,10 @@ namespace NNHelper
                 Thread.CurrentThread.IsBackground = true;
                 while (true)
                 {
-                    if (currentTarget == null)
+                    if (targetDetected == null)
                         dh.DrawDisabled();
                     else
-                        dh.DrawPlaying(currentTarget, IsAiming());
+                        dh.DrawPlaying(targetDetected, IsAiming());
                     Thread.Sleep((int)(1000f/fps));
                 }
             }).Start();

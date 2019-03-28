@@ -81,6 +81,7 @@ namespace NNHelper
 
         public void SetTrackingPoint(YoloItem item)
         {
+            if (item == null) return;
             yoloTracking.SetTrackingObject(item);
         }
 
