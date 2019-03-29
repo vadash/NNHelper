@@ -227,12 +227,12 @@ namespace NNHelper
             else if (dist2 < 80 * 80)
             {
                 k = 8;
-                nextSleep = 3;
+                nextSleep = 2;
             }
             else
             {
                 k = 16;
-                nextSleep = 4;
+                nextSleep = 2;
             }
             var xDelta = k * Math.Sign(curDx);
             var yDelta = k * Math.Sign(curDy);
