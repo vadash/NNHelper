@@ -21,9 +21,7 @@ namespace NNHelper
         private readonly Stopwatch mainCycleWatch = new Stopwatch();
         //private readonly ChaoticSmoothManager chaoticSmoothManager = new ChaoticSmoothManager();
         private const int fps = 60;
-        private const float gameSense = 2.5f;
-        // 2.5f here and 1.0 in game +m_rawinput 0
-        // 2.5f here and 1.0 in game +m_rawinput 1
+        private const float gameSenseBase = 5f; // 5f here for raw input 1 and LTSB windows
 
         // sync fps
         private readonly Stopwatch syncFpsWatch = new Stopwatch();
@@ -104,7 +102,6 @@ namespace NNHelper
                                 }
                                 else
                                 {
-                                    nn.SetTrackingPoint(tmp);
                                     NewTargetFound(tmp);
                                     UpdateSpeed();
                                 }
@@ -204,8 +201,8 @@ namespace NNHelper
                     var (curDx, curDy) = GetAimPoint(targetRendered);
                     var (xDelta, yDelta) = ApplyExperimentalSmooth(curDx, curDy);
                     MoveMouse(xDelta, yDelta);
-                    targetRendered.X -= Convert.ToInt32(xDelta / 2f);
-                    targetRendered.Y -= Convert.ToInt32(yDelta / 2f);
+                    targetRendered.X -= xDelta / gameSenseBase;
+                    targetRendered.Y -= yDelta / gameSenseBase;
                 }
             }).Start();
         }
@@ -216,22 +213,22 @@ namespace NNHelper
             int k;
             if (dist2 < 20 * 20)
             {
-                k = 2;
+                k = 4;
                 nextSleep = 2;
             }
             else if (dist2 < 40 * 40)
             {
-                k = 4;
+                k = 8;
                 nextSleep = 2;
             }
             else if (dist2 < 80 * 80)
             {
-                k = 8;
+                k = 16;
                 nextSleep = 2;
             }
             else
             {
-                k = 16;
+                k = 32;
                 nextSleep = 2;
             }
             var xDelta = k * Math.Sign(curDx);

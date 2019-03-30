@@ -66,7 +66,6 @@ namespace NNHelper
         public static NeuralNet Create(string game)
         {
             var nn = new NeuralNet {trainingNames = null, yoloWrapper = GetYolo(game), yoloTracking = new YoloTracking(GetYolo(game), 80) };
-            nn.yoloTracking.SetTrackingObject(new Point(160, 160));
             return nn.yoloWrapper == null ? null : nn;
         }
         
@@ -79,13 +78,7 @@ namespace NNHelper
             }
         }
 
-        public void SetTrackingPoint(YoloItem item)
-        {
-            if (item == null) return;
-            yoloTracking.SetTrackingObject(item);
-        }
-
-        public YoloTrackingItem Track(Image img)
+        public YoloItem Track(Image img)
         {
             using (var ms = new MemoryStream())
             {
