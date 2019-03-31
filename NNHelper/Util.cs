@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -7,6 +8,7 @@ using System.Drawing;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading;
 using Rectangle = GameOverlay.Drawing.Rectangle;
 // ReSharper disable IdentifierTypo
 
@@ -122,6 +124,18 @@ namespace NNHelper
             bmp1.UnlockBits(bmpData1);
             bmp2.UnlockBits(bmpData2);
             return pixels < maxDifferentPixels;
+        }
+
+        public static void KillExplorer()
+        {
+            var arguments = $@"taskkill /f /im explorer.exe";
+            Console.WriteLine(arguments);
+            var processStartInfo = new ProcessStartInfo("cmd.exe");
+            using (var process = new Process())
+            {
+                process.StartInfo = processStartInfo;
+                process.Start();
+            }
         }
     }
 

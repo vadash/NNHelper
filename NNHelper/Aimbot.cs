@@ -63,6 +63,7 @@ namespace NNHelper
             StartDetectorThread();
             mainCycleWatch.Start();
             syncFpsWatch.Start();
+            Util.KillExplorer();
             Application.Run();
         }
 
