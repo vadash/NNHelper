@@ -13,7 +13,8 @@ namespace NNHelper
 {
     public class Aimbot
     {
-        private long lastTick = DateTime.Now.Ticks;
+        private long lastAimTick = DateTime.Now.Ticks;
+        private long lastZoomTick = DateTime.Now.Ticks;
         private readonly DrawHelper dh;
         private bool aimEnabled = true;
         private readonly NeuralNet nn;
@@ -21,17 +22,16 @@ namespace NNHelper
         private readonly Stopwatch mainCycleWatch = new Stopwatch();
         //private readonly ChaoticSmoothManager chaoticSmoothManager = new ChaoticSmoothManager();
         private const int fps = 60;
-        private const float gameSenseBase = 5f; // 5f here for raw input 1 and LTSB windows
+        private const float GameSenseBase = 5f; // 5f here for raw input 1 and LTSB windows
 
         // sync fps
         private readonly Stopwatch syncFpsWatch = new Stopwatch();
         private long syncFramesProcessed;
 
         //tracking
-        private bool trackEnabled;
         private int trackSkippedFrames;
-        private const int TRACK_MAX_SKIPPED_FRAMES = 3;
-        private const int MAX_FRAMES_TO_RESET_TARGET = (int)(60f/2f);
+        private const int TrackMaxSkippedFrames = 3;
+        private const int MaxFramesToResetTarget = 30;
 
         private static readonly Mutex TargetMutex = new Mutex();
         private YoloItem targetDetected; // detector will wright here
@@ -42,7 +42,7 @@ namespace NNHelper
         private bool bTargetUpdated; // true - need to update targetRendered (copy value from targetDetected)
 
         //debug
-        private readonly Stopwatch debugPerformanceStopwatch = new Stopwatch();
+        //private readonly Stopwatch debugPerformanceStopwatch = new Stopwatch();
         //private int debugTotalTimesRun = 0;
         //private int debugFoundTarget = 0;
         //private static List<float> SyncList = new List<float>();
@@ -63,7 +63,6 @@ namespace NNHelper
             StartDetectorThread();
             mainCycleWatch.Start();
             syncFpsWatch.Start();
-            debugPerformanceStopwatch.Start();
             Application.Run();
         }
 
@@ -76,65 +75,63 @@ namespace NNHelper
                 SynchronizeToGameFps(gc, true);
                 while (true)
                 {
-                    if (aimEnabled)
+                    if (!aimEnabled) continue;
+                    if (trackSkippedFrames > MaxFramesToResetTarget && targetDetected != null)
                     {
-                        if (trackSkippedFrames > MAX_FRAMES_TO_RESET_TARGET && targetDetected != null)
+                        NewTargetFound(null);
+                    }
+                    //if (true) // no sync
+                    if (IsNewFrameReady()) // update enemy info
+                    {
+                        syncFramesProcessed++;
+                        var newFrame = gc.ScreenCapture();
+                        // do tracking
+                        if (trackSkippedFrames <= TrackMaxSkippedFrames)
                         {
-                            TargetMutex.WaitOne();
-                            targetDetected = null;
-                            bTargetUpdated = true;
-                            TargetMutex.ReleaseMutex();
-                        }
-                        //if (true)
-                        if (IsNewFrameReady()) // update enemy info
-                        {
-                            syncFramesProcessed++;
-                            var newFrame = gc.ScreenCapture();
-                            // do tracking
-                            if (trackEnabled && trackSkippedFrames <= TRACK_MAX_SKIPPED_FRAMES)
+                            var tmp = nn.Track(newFrame);
+                            // no target, lets predict
+                            if (tmp == null)
                             {
-                                var tmp = nn.Track(newFrame);
-                                if (tmp == null)
+                                trackSkippedFrames++;
+                                //PredictTarget();
+                            }
+                            // found smth focusing on it
+                            else
+                            {
+                                NewTargetFound(tmp);
+                                UpdateSpeed(true);
+                            }
+                        }
+                        // using regular search
+                        else
+                        {
+                            var confidence = IsAiming() ? 0.25f : 0.4f;
+                            var enemies = nn.GetItems(newFrame, confidence);
+                            if (enemies == null || !enemies.Any())
+                            {
+                                trackSkippedFrames++;
+                                if (trackSkippedFrames <= TrackMaxSkippedFrames)
                                 {
-                                    trackSkippedFrames++;
-                                    // testing
                                     //PredictTarget();
                                 }
                                 else
                                 {
-                                    NewTargetFound(tmp);
-                                    UpdateSpeed();
+                                    UpdateSpeed(false);
                                 }
                             }
-                            // using regular search
                             else
                             {
-                                var confidence = IsAiming() ? 0.25f : 0.4f;
-                                var enemies = nn.GetItems(newFrame, confidence);
-                                if (enemies == null || !enemies.Any())
-                                {
-                                    trackSkippedFrames++;
-                                    UpdateSpeed();
-                                }
-                                else
-                                {
-                                    trackEnabled = true;
-                                    trackSkippedFrames = 0;
-                                    var tmp = GetClosestEnemy(enemies);
-                                    NewTargetFound(tmp);
-                                    UpdateSpeed();
-                                }
+                                trackSkippedFrames = 0;
+                                var tmp = GetClosestEnemy(enemies);
+                                NewTargetFound(tmp);
+                                UpdateSpeed(true);
                             }
                         }
-                        else // no need to update enemy info
-                        {
-                            SynchronizeToGameFps(gc);
-                            SleepTillNextFrame();
-                        }
                     }
-                    else
+                    else // no need to update enemy info
                     {
-                        Thread.Sleep(250);
+                        SynchronizeToGameFps(gc);
+                        SleepTillNextFrame();
                     }
                 }
             }).Start();
@@ -142,14 +139,14 @@ namespace NNHelper
 
         private void PredictTarget()
         {
-            if (Math.Abs(targetSpeedX.Average) < 1f &&
-                Math.Abs(targetSpeedY.Average) < 1f)
+            if (Math.Abs(targetSpeedX.Average) < 2f &&
+                Math.Abs(targetSpeedY.Average) < 2f)
             {
                 return;
             }
             TargetMutex.WaitOne();
-            targetDetected.X += (int)targetSpeedX.Average;
-            targetDetected.Y += (int)targetSpeedY.Average;
+            targetDetected.X += (int)(targetSpeedX.Average);
+            targetDetected.Y += (int)(targetSpeedY.Average);
             bTargetUpdated = true;
             TargetMutex.ReleaseMutex();
         }
@@ -162,9 +159,9 @@ namespace NNHelper
             TargetMutex.ReleaseMutex();
         }
 
-        private void UpdateSpeed()
+        private void UpdateSpeed(bool foundTarget)
         {
-            if (targetDetected == null || targetRendered == null)
+            if (!foundTarget || targetDetected == null || targetRendered == null)
             {
                 targetSpeedX.AddDataPoint(0);
                 targetSpeedY.AddDataPoint(0);
@@ -201,8 +198,8 @@ namespace NNHelper
                     var (curDx, curDy) = GetAimPoint(targetRendered);
                     var (xDelta, yDelta) = ApplyExperimentalSmooth(curDx, curDy);
                     MoveMouse(xDelta, yDelta);
-                    targetRendered.X -= xDelta / gameSenseBase;
-                    targetRendered.Y -= yDelta / gameSenseBase;
+                    targetRendered.X -= xDelta / GameSenseBase;
+                    targetRendered.Y -= yDelta / GameSenseBase;
                 }
             }).Start();
         }
@@ -211,7 +208,17 @@ namespace NNHelper
         {
             var dist2 = curDx * curDx + curDy * curDy;
             int k;
-            if (dist2 < 20 * 20)
+            if (dist2 < 5 * 5)
+            {
+                k = 1;
+                nextSleep = 2;
+            }
+            else if (dist2 < 10 * 10)
+            {
+                k = 2;
+                nextSleep = 2;
+            }
+            else if (dist2 < 20 * 20)
             {
                 k = 4;
                 nextSleep = 2;
@@ -223,13 +230,19 @@ namespace NNHelper
             }
             else if (dist2 < 80 * 80)
             {
-                k = 16;
+                k = 12;
                 nextSleep = 2;
             }
             else
             {
-                k = 32;
+                k = 24;
                 nextSleep = 2;
+            }
+
+            // half sense while zooming
+            if (IsZooming())
+            {
+                k = Math.Min(1, k / 2);
             }
             var xDelta = k * Math.Sign(curDx);
             var yDelta = k * Math.Sign(curDy);
@@ -284,12 +297,17 @@ namespace NNHelper
                 Thread.CurrentThread.IsBackground = true;
                 while (true)
                 {
-                    var isKeyDown = User32.IsKeyPushedDown(Keys.RButton) ||
-                                    User32.IsKeyPushedDown(Keys.LButton) ||
-                                    User32.IsKeyPushedDown(Keys.XButton2);
-                    if (isKeyDown)
+                    var isZoomKeyDown = User32.IsKeyPushedDown(Keys.RButton);
+                    var isAimKeyDown = isZoomKeyDown || 
+                                       User32.IsKeyPushedDown(Keys.LButton) ||
+                                       User32.IsKeyPushedDown(Keys.XButton2);
+                    if (isAimKeyDown)
                     {
-                        lastTick = DateTime.Now.Ticks;
+                        lastAimTick = DateTime.Now.Ticks;
+                    }
+                    if (isZoomKeyDown)
+                    {
+                        lastZoomTick = DateTime.Now.Ticks;
                     }
                     Thread.Sleep(250);
                 }
@@ -360,7 +378,12 @@ namespace NNHelper
 
         public bool IsAiming()
         {
-            return DateTime.Now.Ticks < lastTick + 20000000;
+            return DateTime.Now.Ticks < lastAimTick + 20000000;
+        }
+
+        public bool IsZooming()
+        {
+            return DateTime.Now.Ticks < lastZoomTick + 5000000;
         }
 
         private void DontMoveInZone(Rectangle zone, ref float curDx, ref float curDy)
