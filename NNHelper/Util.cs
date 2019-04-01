@@ -125,18 +125,6 @@ namespace NNHelper
             bmp2.UnlockBits(bmpData2);
             return pixels < maxDifferentPixels;
         }
-
-        public static void KillExplorer()
-        {
-            var arguments = $@"taskkill /f /im explorer.exe";
-            Console.WriteLine(arguments);
-            var processStartInfo = new ProcessStartInfo("cmd.exe");
-            using (var process = new Process())
-            {
-                process.StartInfo = processStartInfo;
-                process.Start();
-            }
-        }
     }
 
     public static class VirtualMouse

@@ -63,7 +63,6 @@ namespace NNHelper
             StartDetectorThread();
             mainCycleWatch.Start();
             syncFpsWatch.Start();
-            Util.KillExplorer();
             Application.Run();
         }
 
@@ -81,32 +80,32 @@ namespace NNHelper
                     {
                         NewTargetFound(null);
                     }
-                    //if (true) // no sync
-                    if (IsNewFrameReady()) // update enemy info
+                    if (true) // no sync
+                    //if (IsNewFrameReady()) // update enemy info
                     {
                         syncFramesProcessed++;
                         var newFrame = gc.ScreenCapture();
                         // do tracking
-                        if (trackSkippedFrames <= TrackMaxSkippedFrames)
+                        //if (trackSkippedFrames <= TrackMaxSkippedFrames)
+                        //{
+                        //    var tmp = nn.Track(newFrame);
+                        //    // no target, lets predict
+                        //    if (tmp == null)
+                        //    {
+                        //        trackSkippedFrames++;
+                        //        //PredictTarget();
+                        //    }
+                        //    // found smth focusing on it
+                        //    else
+                        //    {
+                        //        NewTargetFound(tmp);
+                        //        UpdateSpeed(true);
+                        //    }
+                        //}
+                        //// using regular search
+                        //else
                         {
-                            var tmp = nn.Track(newFrame);
-                            // no target, lets predict
-                            if (tmp == null)
-                            {
-                                trackSkippedFrames++;
-                                //PredictTarget();
-                            }
-                            // found smth focusing on it
-                            else
-                            {
-                                NewTargetFound(tmp);
-                                UpdateSpeed(true);
-                            }
-                        }
-                        // using regular search
-                        else
-                        {
-                            var confidence = IsAiming() ? 0.25f : 0.4f;
+                            var confidence = IsAiming() ? 0.2f : 0.4f;
                             var enemies = nn.GetItems(newFrame, confidence);
                             if (enemies == null || !enemies.Any())
                             {
@@ -243,7 +242,7 @@ namespace NNHelper
             // half sense while zooming
             if (IsZooming())
             {
-                k = Math.Min(1, k / 2);
+                k = (int) Math.Min(1f, 2f * k / 3f);
             }
             var xDelta = k * Math.Sign(curDx);
             var yDelta = k * Math.Sign(curDy);
@@ -379,12 +378,12 @@ namespace NNHelper
 
         public bool IsAiming()
         {
-            return DateTime.Now.Ticks < lastAimTick + 20000000;
+            return DateTime.Now.Ticks < lastAimTick + 15000000;
         }
 
         public bool IsZooming()
         {
-            return DateTime.Now.Ticks < lastZoomTick + 5000000;
+            return DateTime.Now.Ticks < lastZoomTick + 3000000;
         }
 
         private void DontMoveInZone(Rectangle zone, ref float curDx, ref float curDy)
