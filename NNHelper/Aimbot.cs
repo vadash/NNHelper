@@ -21,7 +21,7 @@ namespace NNHelper
         private readonly Settings s;
         private readonly Stopwatch mainCycleWatch = new Stopwatch();
         //private readonly ChaoticSmoothManager chaoticSmoothManager = new ChaoticSmoothManager();
-        private const int fps = 60;
+        private const int fps = 75;
         private const float GameSenseBase = 5f; // 5f here for raw input 1 and LTSB windows
 
         // sync fps
@@ -80,8 +80,8 @@ namespace NNHelper
                     {
                         NewTargetFound(null);
                     }
-                    if (true) // no sync
-                    //if (IsNewFrameReady()) // update enemy info
+                    //if (true) // no sync
+                    if (IsNewFrameReady()) // update enemy info
                     {
                         syncFramesProcessed++;
                         var newFrame = gc.ScreenCapture();
@@ -207,46 +207,46 @@ namespace NNHelper
         private (int, int) ApplyExperimentalSmooth(float curDx, float curDy)
         {
             var dist2 = curDx * curDx + curDy * curDy;
-            int k;
-            if (dist2 < 5 * 5)
+            var dist = Math.Sqrt(dist2);
+            var k = 0;
+            // small distance - move in absolute values
+            if (dist < 40)
             {
-                k = 1;
-                nextSleep = 2;
+                if (dist < 5)
+                {
+                    k = 1;
+                    nextSleep = 2;
+                }
+                else if (dist < 10)
+                {
+                    k = 2;
+                    nextSleep = 2;
+                }
+                else if (dist < 20)
+                {
+                    k = 4;
+                    nextSleep = 2;
+                }
+                else if (dist < 40)
+                {
+                    k = 8;
+                    nextSleep = 2;
+                }
+                // half sense while zooming
+                if (IsZooming())
+                {
+                    k = (int)Math.Min(1f, 2f * k / 3f);
+                }
+                return (k * Math.Sign(curDx), k * Math.Sign(curDy));
             }
-            else if (dist2 < 10 * 10)
-            {
-                k = 2;
-                nextSleep = 2;
-            }
-            else if (dist2 < 20 * 20)
-            {
-                k = 4;
-                nextSleep = 2;
-            }
-            else if (dist2 < 40 * 40)
-            {
-                k = 8;
-                nextSleep = 2;
-            }
-            else if (dist2 < 80 * 80)
-            {
-                k = 12;
-                nextSleep = 2;
-            }
+            // big distance - relative move
             else
             {
-                k = 24;
-                nextSleep = 2;
+                var xDelta = (int)(curDx / 2f);
+                var yDelta = (int)(curDy / 2f);
+                nextSleep = 10;
+                return (xDelta, yDelta);
             }
-
-            // half sense while zooming
-            if (IsZooming())
-            {
-                k = (int) Math.Min(1f, 2f * k / 3f);
-            }
-            var xDelta = k * Math.Sign(curDx);
-            var yDelta = k * Math.Sign(curDy);
-            return (xDelta, yDelta);
         }
 
         //private (int, int) ApplySmoothScale(float curDx, float curDy, float smooth)
