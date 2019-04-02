@@ -210,26 +210,21 @@ namespace NNHelper
             var dist = Math.Sqrt(dist2);
             var k = 0;
             // small distance - move in absolute values
-            if (dist < 40)
+            if (dist <= 10)
             {
-                if (dist < 5)
+                if (dist <= 3)
                 {
                     k = 1;
                     nextSleep = 2;
                 }
-                else if (dist < 10)
+                else if (dist <= 7)
                 {
                     k = 2;
                     nextSleep = 2;
                 }
-                else if (dist < 20)
+                else
                 {
-                    k = 4;
-                    nextSleep = 2;
-                }
-                else if (dist < 40)
-                {
-                    k = 8;
+                    k = 3;
                     nextSleep = 2;
                 }
                 // half sense while zooming
@@ -239,11 +234,18 @@ namespace NNHelper
                 }
                 return (k * Math.Sign(curDx), k * Math.Sign(curDy));
             }
-            // big distance - relative move
-            else
+            else if (dist <= 40)
             {
                 var xDelta = (int)(curDx / 2f);
                 var yDelta = (int)(curDy / 2f);
+                nextSleep = 10;
+                return (xDelta, yDelta);
+            }
+            // big distance - relative move
+            else
+            {
+                var xDelta = (int)(curDx / 1.5f);
+                var yDelta = (int)(curDy / 1.5f);
                 nextSleep = 10;
                 return (xDelta, yDelta);
             }
