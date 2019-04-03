@@ -182,7 +182,7 @@ namespace NNHelper
                 Thread.CurrentThread.IsBackground = true;
                 while (true)
                 {
-                    Thread.Sleep(nextSleep);
+                    Thread.Sleep(Math.Max(nextSleep, 2));
                     if (bTargetUpdated)
                     {
                         TargetMutex.WaitOne();
@@ -227,25 +227,22 @@ namespace NNHelper
                     k = 3;
                     nextSleep = 2;
                 }
-                // half sense while zooming
+
                 if (IsZooming())
                 {
-                    k = (int)Math.Min(1f, 2f * k / 3f);
+                    k = 1;
+                    nextSleep = 2;
                 }
                 return (k * Math.Sign(curDx), k * Math.Sign(curDy));
-            }
-            else if (dist <= 40)
-            {
-                var xDelta = (int)(curDx / 2f);
-                var yDelta = (int)(curDy / 2f);
-                nextSleep = 10;
-                return (xDelta, yDelta);
             }
             // big distance - relative move
             else
             {
-                var xDelta = (int)(curDx / 1.5f);
-                var yDelta = (int)(curDy / 1.5f);
+                var f = 1.5f;
+                if (dist < 40 && IsZooming())
+                    f = 2f;
+                var xDelta = (int)(curDx / f);
+                var yDelta = (int)(curDy / f);
                 nextSleep = 10;
                 return (xDelta, yDelta);
             }
