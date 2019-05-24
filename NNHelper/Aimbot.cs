@@ -21,7 +21,7 @@ namespace NNHelper
         private readonly Settings s;
         private readonly Stopwatch mainCycleWatch = new Stopwatch();
         //private readonly ChaoticSmoothManager chaoticSmoothManager = new ChaoticSmoothManager();
-        private const int fps = 75;
+        private const int fps = 60;
         private const float GameSenseBase = 5f; // 5f here for raw input 1 and LTSB windows
 
         // sync fps
@@ -56,7 +56,6 @@ namespace NNHelper
 
         public void Start()
         {
-            Console.WriteLine("PepeHands please work");
             StartReadKeysThread();
             StartRenderThread();
             StartMouseMoveThread();
